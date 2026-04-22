@@ -54,19 +54,23 @@ export default async function VehicleDetailPage({
   });
   if (!vehicle) notFound();
 
+  // Each user sees only their own trips on a shared vehicle ("keeps their side
+  // of the record"). The vehicle's currentOdometer remains shared across drivers.
+  const tripWhere = { vehicleId: vehicle.id, userId: user.id } as const;
+
   const [tripCount, distanceAgg] = await Promise.all([
-    prisma.trip.count({ where: { vehicleId: vehicle.id } }),
+    prisma.trip.count({ where: tripWhere }),
     prisma.$queryRaw<{ sum: bigint | null }[]>`
       SELECT COALESCE(SUM("endOdometer" - "startOdometer"), 0)::bigint AS sum
       FROM "Trip"
-      WHERE "vehicleId" = ${vehicle.id}
+      WHERE "vehicleId" = ${vehicle.id} AND "userId" = ${user.id}
     `,
   ]);
   const totalPages = computeTotalPages(tripCount);
   const page = parsePage(pageRaw, totalPages);
 
   const trips = await prisma.trip.findMany({
-    where: { vehicleId: vehicle.id },
+    where: tripWhere,
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
     skip: computeSkip(page),
     take: DEFAULT_PAGE_SIZE,

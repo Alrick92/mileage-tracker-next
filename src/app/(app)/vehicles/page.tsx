@@ -47,7 +47,13 @@ export default async function VehiclesPage({
     where: assignmentFilter,
     orderBy: { name: "asc" },
     include: {
-      _count: { select: { trips: true, assignments: true } },
+      // Per-user trip count: each driver sees their own tally on shared vehicles.
+      _count: {
+        select: {
+          trips: { where: { userId: user.id } },
+          assignments: true,
+        },
+      },
     },
     skip: computeSkip(page),
     take: DEFAULT_PAGE_SIZE,
