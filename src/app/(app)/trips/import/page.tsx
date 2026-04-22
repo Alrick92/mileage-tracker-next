@@ -48,7 +48,7 @@ export default async function ImportTripsPage() {
           </div>
           <p className="mt-1">{t("trips.import.formatBody")}</p>
           <code className="mt-2 block overflow-x-auto rounded bg-white px-2 py-1 font-mono text-[11px] text-zinc-800">
-            Date,Driver,Start ({unitLabel}),End ({unitLabel}),Notes
+            Date,Start ({unitLabel}),End ({unitLabel}),Notes
           </code>
         </div>
 

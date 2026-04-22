@@ -118,7 +118,7 @@
   "trips.import.title": "Import trips from CSV",
   "trips.import.subtitle": "Select the vehicle these trips belong to, then upload a CSV. Odometer values are interpreted in your current unit ({unit}).",
   "trips.import.formatHeading": "Expected format",
-  "trips.import.formatBody": "The CSV must have a header row. Required columns: Date, Driver, Start, End. Optional: Notes. Vehicle and License plate columns (from the Export CSV) are ignored — every imported row is assigned to the vehicle you select below.",
+  "trips.import.formatBody": "The CSV must have a header row. Required columns: Date, Start, End. Optional: Notes. Driver, Vehicle, and License plate columns (from the Export CSV) are ignored — the driver is set to your account name and every imported row is assigned to the vehicle you select below.",
   "trips.import.vehicle": "Vehicle",
   "trips.import.vehiclePlaceholder": "Select a vehicle…",
   "trips.import.vehicleHelp": "All rows in the uploaded CSV will be assigned to this vehicle.",
