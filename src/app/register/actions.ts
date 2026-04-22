@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit";
 
 const RegisterSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
@@ -32,7 +33,7 @@ export async function registerAction(
   const passwordHash = await hashPassword(parsed.data.password);
 
   try {
-    await prisma.user.create({
+    const created = await prisma.user.create({
       data: {
         name: parsed.data.name,
         email,
@@ -40,6 +41,17 @@ export async function registerAction(
         // role, enabled, unit, locale use schema defaults
         // (USER, false, MI, EN).
       },
+      select: { id: true, email: true, name: true },
+    });
+    // Self-registration: the new user is both actor and entity. The audit
+    // entry makes the signup visible to admins (who otherwise had to check
+    // `/admin/users` manually).
+    await writeAuditLog({
+      actorId: created.id,
+      action: "USER_CREATED",
+      entityType: "User",
+      entityId: created.id,
+      summary: `${created.name} <${created.email}>`,
     });
   } catch (err) {
     if (

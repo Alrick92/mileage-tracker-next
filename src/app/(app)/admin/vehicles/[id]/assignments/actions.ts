@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/audit";
 
 function safeBack(vehicleId: string, search?: string): string {
   return `/admin/vehicles/${vehicleId}/assignments${search ?? ""}`;
@@ -13,7 +14,7 @@ function safeBack(vehicleId: string, search?: string): string {
 export async function adminAssignUserAction(
   formData: FormData,
 ): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const vehicleId = String(formData.get("vehicleId") ?? "");
   const userId = String(formData.get("userId") ?? "");
   if (!vehicleId || !userId) {
@@ -26,8 +27,14 @@ export async function adminAssignUserAction(
   }
 
   const [vehicle, user] = await Promise.all([
-    prisma.vehicle.findUnique({ where: { id: vehicleId }, select: { id: true } }),
-    prisma.user.findUnique({ where: { id: userId }, select: { id: true } }),
+    prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      select: { id: true, name: true, licensePlate: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true },
+    }),
   ]);
   if (!vehicle) {
     redirect(
@@ -47,11 +54,30 @@ export async function adminAssignUserAction(
   }
 
   // upsert via unique composite so re-submitting the form is idempotent
-  await prisma.vehicleAssignment.upsert({
+  const result = await prisma.vehicleAssignment.upsert({
     where: { vehicleId_userId: { vehicleId, userId } },
     create: { vehicleId, userId },
     update: {},
   });
+  // Only audit real changes (create), not idempotent no-op re-submits.
+  const created = result.createdAt.getTime() > Date.now() - 5_000;
+  if (created) {
+    await writeAuditLog({
+      actorId: admin.id,
+      action: "VEHICLE_UPDATED",
+      entityType: "Vehicle",
+      entityId: vehicleId,
+      summary: vehicle.licensePlate
+        ? `${vehicle.name} (${vehicle.licensePlate})`
+        : vehicle.name,
+      details: {
+        change: "driverAssigned",
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+      },
+    });
+  }
 
   revalidatePath(`/admin/vehicles/${vehicleId}/assignments`);
   revalidatePath("/admin/fleet");
@@ -62,7 +88,7 @@ export async function adminAssignUserAction(
 export async function adminUnassignUserAction(
   formData: FormData,
 ): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const vehicleId = String(formData.get("vehicleId") ?? "");
   const userId = String(formData.get("userId") ?? "");
   if (!vehicleId || !userId) {
@@ -89,13 +115,40 @@ export async function adminUnassignUserAction(
     );
   }
 
-  await prisma.vehicleAssignment
+  const [vehicle, user] = await Promise.all([
+    prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      select: { id: true, name: true, licensePlate: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true },
+    }),
+  ]);
+
+  const deleted = await prisma.vehicleAssignment
     .delete({
       where: { vehicleId_userId: { vehicleId, userId } },
     })
-    .catch(() => {
-      // no-op if the row is already gone
+    .catch(() => null);
+
+  if (deleted && vehicle && user) {
+    await writeAuditLog({
+      actorId: admin.id,
+      action: "VEHICLE_UPDATED",
+      entityType: "Vehicle",
+      entityId: vehicleId,
+      summary: vehicle.licensePlate
+        ? `${vehicle.name} (${vehicle.licensePlate})`
+        : vehicle.name,
+      details: {
+        change: "driverUnassigned",
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+      },
     });
+  }
 
   revalidatePath(`/admin/vehicles/${vehicleId}/assignments`);
   revalidatePath("/admin/fleet");

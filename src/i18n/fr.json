@@ -8,6 +8,7 @@
   "nav.settings": "Paramètres",
   "nav.admin": "Utilisateurs",
   "nav.fleet": "Flotte",
+  "nav.audit": "Journal d'audit",
 
   "topbar.signedInAs": "Connecté en tant que",
   "topbar.signOut": "Se déconnecter",
@@ -262,5 +263,20 @@
   "register.submit": "S'inscrire",
   "register.submitting": "Création…",
   "register.login": "Déjà un compte ? Se connecter",
-  "register.error.exists": "Un compte avec cet e-mail existe déjà."
+  "register.error.exists": "Un compte avec cet e-mail existe déjà.",
+
+  "audit.title": "Journal d'audit",
+  "audit.subtitle": "Historique chronologique des modifications effectuées par les utilisateurs et administrateurs.",
+  "audit.empty": "Aucun événement d'audit n'a encore été enregistré.",
+  "audit.col.time": "Heure",
+  "audit.col.actor": "Utilisateur",
+  "audit.col.event": "Événement",
+  "audit.col.entity": "Détails",
+  "audit.actor.system": "Système",
+  "audit.actor.deleted": "Utilisateur supprimé",
+  "audit.action.USER_CREATED": "Utilisateur créé",
+  "audit.action.VEHICLE_CREATED": "Véhicule créé",
+  "audit.action.VEHICLE_UPDATED": "Véhicule modifié",
+  "audit.action.TRIP_CREATED": "Trajet ajouté",
+  "audit.action.TRIP_UPDATED": "Trajet modifié"
 }

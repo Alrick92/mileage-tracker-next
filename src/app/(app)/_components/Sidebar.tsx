@@ -24,6 +24,7 @@ export function Sidebar({
     settings: string;
     admin: string;
     fleet: string;
+    audit: string;
   };
   isAdmin: boolean;
 }) {
@@ -61,6 +62,11 @@ export function Sidebar({
       href: "/admin/users",
       label: labels.admin,
       match: (p) => p.startsWith("/admin/users"),
+    });
+    nav.push({
+      href: "/admin/audit",
+      label: labels.audit,
+      match: (p) => p.startsWith("/admin/audit"),
     });
   }
 

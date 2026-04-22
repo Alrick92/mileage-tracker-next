@@ -8,6 +8,7 @@
   "nav.settings": "Settings",
   "nav.admin": "Users",
   "nav.fleet": "Fleet",
+  "nav.audit": "Audit log",
 
   "topbar.signedInAs": "Signed in as",
   "topbar.signOut": "Sign out",
@@ -262,5 +263,20 @@
   "register.submit": "Register",
   "register.submitting": "Registering…",
   "register.login": "Already have an account? Sign in",
-  "register.error.exists": "An account with that email already exists."
+  "register.error.exists": "An account with that email already exists.",
+
+  "audit.title": "Audit log",
+  "audit.subtitle": "Chronological record of changes made by users and administrators.",
+  "audit.empty": "No audit events have been recorded yet.",
+  "audit.col.time": "Time",
+  "audit.col.actor": "User",
+  "audit.col.event": "Event",
+  "audit.col.entity": "Details",
+  "audit.actor.system": "System",
+  "audit.actor.deleted": "Deleted user",
+  "audit.action.USER_CREATED": "User created",
+  "audit.action.VEHICLE_CREATED": "Vehicle created",
+  "audit.action.VEHICLE_UPDATED": "Vehicle modified",
+  "audit.action.TRIP_CREATED": "Mileage added",
+  "audit.action.TRIP_UPDATED": "Mileage modified"
 }
