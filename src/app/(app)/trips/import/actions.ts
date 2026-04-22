@@ -48,6 +48,21 @@ export async function importTripsAction(
   const user = await requireUser();
   const unit = user.unit as Unit;
 
+  const vehicleIdRaw = formData.get("vehicleId");
+  const vehicleId =
+    typeof vehicleIdRaw === "string" ? vehicleIdRaw.trim() : "";
+  if (!vehicleId) {
+    return { error: "Please select a vehicle to import these trips into." };
+  }
+
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: vehicleId, userId: user.id },
+    select: { id: true, currentOdometer: true },
+  });
+  if (!vehicle) {
+    return { error: "Selected vehicle was not found in your fleet." };
+  }
+
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { error: "Please choose a CSV file to import." };
@@ -65,16 +80,15 @@ export async function importTripsAction(
   const headerRow = rows[0].map(normalizeHeader);
   const colIndex = (name: string) => headerRow.indexOf(name);
 
-  const required = ["date", "licensePlate", "driver", "start", "end"] as const;
+  const required = ["date", "driver", "start", "end"] as const;
   const missing = required.filter((r) => colIndex(r) === -1);
   if (missing.length > 0) {
     return {
-      error: `CSV is missing required column(s): ${missing.join(", ")}. Expected headers match the Export CSV format.`,
+      error: `CSV is missing required column(s): ${missing.join(", ")}. Required columns: Date, Driver, Start, End. Notes is optional.`,
     };
   }
 
   const iDate = colIndex("date");
-  const iPlate = colIndex("licensePlate");
   const iDriver = colIndex("driver");
   const iStart = colIndex("start");
   const iEnd = colIndex("end");
@@ -85,24 +99,8 @@ export async function importTripsAction(
     return { error: "CSV has headers but no data rows." };
   }
 
-  const vehicles = await prisma.vehicle.findMany({
-    where: { userId: user.id },
-    select: {
-      id: true,
-      licensePlate: true,
-      currentOdometer: true,
-    },
-  });
-  const vehicleByPlate = new Map<string, (typeof vehicles)[number]>();
-  for (const v of vehicles) {
-    if (v.licensePlate) {
-      vehicleByPlate.set(v.licensePlate.trim().toLowerCase(), v);
-    }
-  }
-
   type ValidRow = {
     rowNumber: number;
-    vehicleId: string;
     driverName: string;
     date: Date;
     startOdometerKm: number;
@@ -117,17 +115,6 @@ export async function importTripsAction(
     const rowNumber = idx + 2;
     const pushError = (message: string) =>
       rowErrors.push({ row: rowNumber, message });
-
-    const plateRaw = (cells[iPlate] ?? "").trim();
-    if (!plateRaw) {
-      pushError("License plate is required.");
-      return;
-    }
-    const vehicle = vehicleByPlate.get(plateRaw.toLowerCase());
-    if (!vehicle) {
-      pushError(`No vehicle with license plate "${plateRaw}" in your fleet.`);
-      return;
-    }
 
     const dateRaw = (cells[iDate] ?? "").trim();
     if (!dateRaw) {
@@ -185,7 +172,6 @@ export async function importTripsAction(
 
     valid.push({
       rowNumber,
-      vehicleId: vehicle.id,
       driverName: driverRaw,
       date: parsedDate,
       startOdometerKm: parseOdometerToKm(startNum, unit),
@@ -203,21 +189,15 @@ export async function importTripsAction(
     };
   }
 
-  const maxEndByVehicle = new Map<string, number>();
+  let maxEnd = 0;
   for (const row of valid) {
-    const prev = maxEndByVehicle.get(row.vehicleId) ?? 0;
-    if (row.endOdometerKm > prev) {
-      maxEndByVehicle.set(row.vehicleId, row.endOdometerKm);
-    }
+    if (row.endOdometerKm > maxEnd) maxEnd = row.endOdometerKm;
   }
-
-  const vehicleCurrentById = new Map<string, number>();
-  for (const v of vehicles) vehicleCurrentById.set(v.id, v.currentOdometer);
 
   await prisma.$transaction(async (tx) => {
     await tx.trip.createMany({
       data: valid.map((row) => ({
-        vehicleId: row.vehicleId,
+        vehicleId: vehicle.id,
         userId: user.id,
         driverName: row.driverName,
         date: row.date,
@@ -227,14 +207,11 @@ export async function importTripsAction(
       })),
     });
 
-    for (const [vehicleId, maxEnd] of maxEndByVehicle) {
-      const current = vehicleCurrentById.get(vehicleId) ?? 0;
-      if (maxEnd > current) {
-        await tx.vehicle.update({
-          where: { id: vehicleId },
-          data: { currentOdometer: maxEnd },
-        });
-      }
+    if (maxEnd > vehicle.currentOdometer) {
+      await tx.vehicle.update({
+        where: { id: vehicle.id },
+        data: { currentOdometer: maxEnd },
+      });
     }
   });
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { translator } from "@/lib/i18n";
 import { unitShort } from "@/lib/units";
@@ -16,6 +17,12 @@ export default async function ImportTripsPage() {
   const user = await requireUser();
   const t = translator(user.locale);
   const unitLabel = unitShort(user.unit, user.locale);
+
+  const vehicles = await prisma.vehicle.findMany({
+    where: { userId: user.id },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, licensePlate: true },
+  });
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -41,13 +48,17 @@ export default async function ImportTripsPage() {
           </div>
           <p className="mt-1">{t("trips.import.formatBody")}</p>
           <code className="mt-2 block overflow-x-auto rounded bg-white px-2 py-1 font-mono text-[11px] text-zinc-800">
-            Date,Vehicle,License plate,Driver,Start ({unitLabel}),End (
-            {unitLabel}),Distance ({unitLabel}),Notes
+            Date,Driver,Start ({unitLabel}),End ({unitLabel}),Notes
           </code>
         </div>
 
         <ImportForm
+          vehicles={vehicles}
           labels={{
+            vehicle: t("trips.import.vehicle"),
+            vehiclePlaceholder: t("trips.import.vehiclePlaceholder"),
+            vehicleHelp: t("trips.import.vehicleHelp"),
+            vehicleEmpty: t("trips.import.vehicleEmpty"),
             chooseFile: t("trips.import.chooseFile"),
             fileHelp: t("trips.import.fileHelp"),
             submit: t("trips.import.submit"),
