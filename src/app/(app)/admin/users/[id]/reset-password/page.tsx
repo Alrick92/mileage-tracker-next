@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
@@ -10,19 +11,15 @@ import { resetPasswordAction } from "../../actions";
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ temp?: string }>;
 
 export default async function ResetPasswordPage({
   params,
-  searchParams,
 }: {
   params: Params;
-  searchParams: SearchParams;
 }) {
   const admin = await requireAdmin();
   const t = translator(admin.locale);
   const { id } = await params;
-  const { temp } = await searchParams;
 
   if (id === admin.id) notFound();
 
@@ -31,6 +28,24 @@ export default async function ResetPasswordPage({
     select: { id: true, name: true, email: true },
   });
   if (!target) notFound();
+
+  // One-shot read: consume the short-lived cookie set by resetPasswordAction.
+  // Clearing it immediately prevents the plaintext from surviving a page
+  // refresh or the browser Back button.
+  const cookieStore = await cookies();
+  const cookieName = `mt_temp_pw_${id}`;
+  const temp = cookieStore.get(cookieName)?.value;
+  if (temp) {
+    cookieStore.set({
+      name: cookieName,
+      value: "",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: `/admin/users/${id}/reset-password`,
+      maxAge: 0,
+    });
+  }
 
   return (
     <div className="mx-auto max-w-xl space-y-6">

@@ -42,7 +42,7 @@ export default async function AdminUsersPage({
   return (
     <div className="space-y-6">
       {error ? (
-        <Toast variant="error" message={decodeURIComponent(error)} />
+        <Toast variant="error" message={error} />
       ) : null}
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">

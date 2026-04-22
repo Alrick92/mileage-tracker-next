@@ -119,7 +119,18 @@ export async function deleteTripAction(formData: FormData): Promise<void> {
     redirect("/trips?error=" + encodeURIComponent("Trip not found"));
   }
 
-  await prisma.trip.delete({ where: { id: trip.id } });
+  await prisma.$transaction(async (tx) => {
+    await tx.trip.delete({ where: { id: trip.id } });
+
+    const max = await tx.trip.aggregate({
+      where: { vehicleId: trip.vehicleId },
+      _max: { endOdometer: true },
+    });
+    await tx.vehicle.update({
+      where: { id: trip.vehicleId },
+      data: { currentOdometer: max._max.endOdometer ?? 0 },
+    });
+  });
 
   revalidatePath("/dashboard");
   revalidatePath("/trips");

@@ -2,6 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -110,10 +111,19 @@ export async function resetPasswordAction(formData: FormData): Promise<void> {
     data: { passwordHash, mustChangePassword: true },
   });
 
+  // Hand the plaintext off via a short-lived httpOnly cookie so it never
+  // shows up in the URL, browser history, referer headers, or server logs.
+  const cookieStore = await cookies();
+  cookieStore.set({
+    name: `mt_temp_pw_${userId}`,
+    value: tempPassword,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: `/admin/users/${userId}/reset-password`,
+    maxAge: 120,
+  });
+
   revalidatePath("/admin/users");
-  redirect(
-    `/admin/users/${userId}/reset-password?temp=${encodeURIComponent(
-      tempPassword,
-    )}`,
-  );
+  redirect(`/admin/users/${userId}/reset-password`);
 }

@@ -38,7 +38,7 @@ export default async function VehiclesPage({
         <Toast variant="success" message={t("toast.vehicleDeleted")} />
       ) : null}
       {params.error ? (
-        <Toast variant="error" message={decodeURIComponent(params.error)} />
+        <Toast variant="error" message={params.error} />
       ) : null}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>

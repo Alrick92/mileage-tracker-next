@@ -43,7 +43,7 @@ export default async function DeleteVehiclePage({
         ← {t("vehicles.title")}
       </Link>
       {error ? (
-        <Toast variant="error" message={decodeURIComponent(error)} />
+        <Toast variant="error" message={error} />
       ) : null}
       <div className="rounded-xl border border-red-200 bg-white p-6 shadow-sm">
         <h1 className="text-xl font-semibold text-zinc-900">
