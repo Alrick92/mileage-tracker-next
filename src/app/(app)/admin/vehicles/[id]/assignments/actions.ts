@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -53,41 +54,45 @@ export async function adminAssignUserAction(
     );
   }
 
-  // Atomic check-create-audit: wrap in a single transaction so concurrent
-  // double-submits or parallel admin requests can't each pass the "new"
-  // check and write duplicate audit entries.
-  await prisma.$transaction(async (tx) => {
-    const existingAssignment = await tx.vehicleAssignment.findUnique({
-      where: { vehicleId_userId: { vehicleId, userId } },
-      select: { vehicleId: true },
-    });
-    if (existingAssignment) {
-      return; // idempotent: no-op, no audit
-    }
-    await tx.vehicleAssignment.create({
-      data: { vehicleId, userId },
-    });
-    await writeAuditLog(
-      {
-        actorId: admin.id,
-        actorEmail: admin.email,
-        actorName: admin.name,
-        action: "VEHICLE_UPDATED",
-        entityType: "Vehicle",
-        entityId: vehicleId,
-        summary: vehicle.licensePlate
-          ? `${vehicle.name} (${vehicle.licensePlate})`
-          : vehicle.name,
-        details: {
-          change: "driverAssigned",
-          userId: user.id,
-          userEmail: user.email,
-          userName: user.name,
+  // Let the unique constraint on (vehicleId, userId) be the source of truth
+  // for "already assigned" — this works under Postgres' default READ COMMITTED
+  // isolation, where a findUnique-then-create pattern would race two concurrent
+  // admins. The creating transaction audits; the losing one silently no-ops.
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.vehicleAssignment.create({ data: { vehicleId, userId } });
+      await writeAuditLog(
+        {
+          actorId: admin.id,
+          actorEmail: admin.email,
+          actorName: admin.name,
+          action: "VEHICLE_UPDATED",
+          entityType: "Vehicle",
+          entityId: vehicleId,
+          summary: vehicle.licensePlate
+            ? `${vehicle.name} (${vehicle.licensePlate})`
+            : vehicle.name,
+          details: {
+            change: "driverAssigned",
+            userId: user.id,
+            userEmail: user.email,
+            userName: user.name,
+          },
         },
-      },
-      tx,
-    );
-  });
+        tx,
+      );
+    });
+  } catch (err) {
+    if (
+      !(
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      )
+    ) {
+      throw err;
+    }
+    // P2002: assignment already exists — idempotent, don't audit.
+  }
 
   revalidatePath(`/admin/vehicles/${vehicleId}/assignments`);
   revalidatePath("/admin/fleet");
