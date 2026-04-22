@@ -1,10 +1,16 @@
 import Link from "next/link";
 
+import { getCurrentUser } from "@/lib/auth";
+import { logoutAction } from "@/app/actions/auth";
+
 export const metadata = {
   title: "Account pending · Mileage Tracker",
 };
 
-export default function PendingPage() {
+export const dynamic = "force-dynamic";
+
+export default async function PendingPage() {
+  const user = await getCurrentUser();
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
@@ -23,14 +29,25 @@ export default function PendingPage() {
             administrator to request approval.
           </p>
         </div>
-        <p className="mt-6 text-center text-sm text-zinc-500">
-          <Link
-            href="/login"
-            className="font-medium text-zinc-900 underline-offset-4 hover:underline"
-          >
-            Back to sign in
-          </Link>
-        </p>
+        {user ? (
+          <form action={logoutAction} className="mt-6 text-center">
+            <button
+              type="submit"
+              className="text-sm font-medium text-zinc-900 underline-offset-4 hover:underline"
+            >
+              Sign out
+            </button>
+          </form>
+        ) : (
+          <p className="mt-6 text-center text-sm text-zinc-500">
+            <Link
+              href="/login"
+              className="font-medium text-zinc-900 underline-offset-4 hover:underline"
+            >
+              Back to sign in
+            </Link>
+          </p>
+        )}
       </div>
     </main>
   );
