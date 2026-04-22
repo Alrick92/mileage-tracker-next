@@ -125,12 +125,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 export async function requireUser(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!user.enabled) {
-    // Session is valid, but the user was disabled — invalidate and send them
-    // to the pending-approval page.
-    await destroySession();
-    redirect("/pending");
-  }
+  if (!user.enabled) redirect("/pending");
   return user;
 }
 
