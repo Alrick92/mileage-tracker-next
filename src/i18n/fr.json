@@ -41,6 +41,7 @@
   "toast.vehicleSaved": "Véhicule enregistré.",
   "toast.vehicleDeleted": "Véhicule supprimé.",
   "toast.tripSaved": "Trajet enregistré.",
+  "toast.tripUpdated": "Trajet mis à jour.",
   "toast.tripDeleted": "Trajet supprimé.",
   "toast.passwordUpdated": "Mot de passe mis à jour.",
   "toast.passwordReset": "Mot de passe réinitialisé.",
@@ -96,6 +97,8 @@
   "trips.col.start": "Début",
   "trips.col.end": "Fin",
   "trips.col.distance": "Distance",
+  "trips.col.notes": "Notes",
+  "trips.col.actions": "Actions",
   "trips.new.title": "Enregistrer un trajet",
   "trips.new.subtitle": "Enregistrez un trajet et mettez à jour l'odomètre du véhicule.",
   "trips.new.needVehicle": "Ajoutez un véhicule avant d'enregistrer un trajet.",
@@ -111,6 +114,15 @@
   "trips.form.distance": "Distance",
   "trips.form.notes": "Notes",
   "trips.form.save": "Enregistrer le trajet",
+
+  "trips.edit.title": "Modifier le trajet",
+  "trips.edit.subtitle": "Mettez à jour les détails du trajet. Les odomètres et le véhicule sont synchronisés avec le relevé actuel.",
+  "trips.edit.save": "Enregistrer les modifications",
+
+  "trip.detail.title": "Détails du trajet",
+  "trip.detail.subtitle": "Enregistrement complet de ce trajet, notes incluses.",
+  "trip.detail.notes.empty": "Aucune note pour ce trajet.",
+  "trip.detail.dangerZone": "Zone sensible",
 
   "trip.delete.title": "Supprimer ce trajet ?",
   "trip.delete.subtitle": "Cette action est irréversible.",

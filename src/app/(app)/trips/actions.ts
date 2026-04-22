@@ -106,6 +106,102 @@ export async function createTripAction(
   redirect("/trips?saved=1");
 }
 
+export async function updateTripAction(
+  _prev: TripFormState,
+  formData: FormData,
+): Promise<TripFormState> {
+  const user = await requireUser();
+
+  const tripId = String(formData.get("tripId") ?? "");
+  if (!tripId) {
+    return { error: "Missing trip id." };
+  }
+
+  const parsed = TripSchema.safeParse({
+    vehicleId: formData.get("vehicleId"),
+    driverName: formData.get("driverName"),
+    date: formData.get("date"),
+    startOdometer: formData.get("startOdometer"),
+    endOdometer: formData.get("endOdometer"),
+    notes: formData.get("notes") ?? undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  const existing = await prisma.trip.findFirst({
+    where: { id: tripId, userId: user.id },
+    select: { id: true, vehicleId: true },
+  });
+  if (!existing) {
+    return { error: "Trip not found." };
+  }
+
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: parsed.data.vehicleId, userId: user.id },
+    select: { id: true, initialOdometer: true },
+  });
+  if (!vehicle) {
+    return { error: "Vehicle not found." };
+  }
+
+  const unit = user.unit as Unit;
+  const startOdometerKm = parseOdometerToKm(parsed.data.startOdometer, unit);
+  const endOdometerKm = parseOdometerToKm(parsed.data.endOdometer, unit);
+
+  // Collect every vehicle whose currentOdometer could change:
+  // - the new vehicle (because of the new endOdometer)
+  // - the old vehicle, when reassigning, because removing this trip may
+  //   lower its max endOdometer.
+  const affectedVehicleIds = new Set<string>([vehicle.id, existing.vehicleId]);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.trip.update({
+      where: { id: existing.id },
+      data: {
+        vehicleId: vehicle.id,
+        driverName: parsed.data.driverName,
+        date: new Date(parsed.data.date),
+        startOdometer: startOdometerKm,
+        endOdometer: endOdometerKm,
+        notes: parsed.data.notes,
+      },
+    });
+
+    for (const vid of affectedVehicleIds) {
+      const [veh, agg] = await Promise.all([
+        tx.vehicle.findUnique({
+          where: { id: vid },
+          select: { initialOdometer: true },
+        }),
+        tx.trip.aggregate({
+          where: { vehicleId: vid },
+          _max: { endOdometer: true },
+        }),
+      ]);
+      if (!veh) continue;
+      const recomputed = Math.max(
+        agg._max.endOdometer ?? 0,
+        veh.initialOdometer,
+      );
+      await tx.vehicle.update({
+        where: { id: vid },
+        data: { currentOdometer: recomputed },
+      });
+    }
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/vehicles");
+  revalidatePath(`/vehicles/${vehicle.id}`);
+  if (existing.vehicleId !== vehicle.id) {
+    revalidatePath(`/vehicles/${existing.vehicleId}`);
+  }
+  revalidatePath("/trips");
+  revalidatePath(`/trips/${existing.id}`);
+  redirect(`/trips/${existing.id}?updated=1`);
+}
+
 export async function deleteTripAction(formData: FormData): Promise<void> {
   const user = await requireUser();
   const tripId = String(formData.get("tripId") ?? "");
