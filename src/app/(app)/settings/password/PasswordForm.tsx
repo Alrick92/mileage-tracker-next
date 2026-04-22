@@ -1,0 +1,95 @@
+"use client";
+
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
+
+import { changePasswordAction, type ChangePasswordState } from "./actions";
+
+const initialState: ChangePasswordState = {};
+
+function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+    >
+      {pending ? pendingLabel : label}
+    </button>
+  );
+}
+
+export function PasswordForm({
+  labels,
+}: {
+  labels: {
+    current: string;
+    new: string;
+    confirm: string;
+    save: string;
+    saving: string;
+  };
+}) {
+  const [state, action] = useActionState(changePasswordAction, initialState);
+  return (
+    <form action={action} className="space-y-4">
+      <div>
+        <label
+          htmlFor="currentPassword"
+          className="block text-sm font-medium text-zinc-700"
+        >
+          {labels.current}
+        </label>
+        <input
+          id="currentPassword"
+          name="currentPassword"
+          type="password"
+          autoComplete="current-password"
+          required
+          className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="newPassword"
+          className="block text-sm font-medium text-zinc-700"
+        >
+          {labels.new}
+        </label>
+        <input
+          id="newPassword"
+          name="newPassword"
+          type="password"
+          autoComplete="new-password"
+          minLength={10}
+          required
+          className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="confirmPassword"
+          className="block text-sm font-medium text-zinc-700"
+        >
+          {labels.confirm}
+        </label>
+        <input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          minLength={10}
+          required
+          className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        />
+      </div>
+      {state.error ? (
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {state.error}
+        </p>
+      ) : null}
+      <Submit label={labels.save} pendingLabel={labels.saving} />
+    </form>
+  );
+}
