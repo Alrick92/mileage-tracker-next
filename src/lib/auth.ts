@@ -24,6 +24,7 @@ export type SessionUser = {
   enabled: boolean;
   unit: "KM" | "MI";
   locale: "EN" | "FR";
+  mustChangePassword: boolean;
 };
 
 function getSecret(): Uint8Array {
@@ -117,15 +118,21 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       enabled: true,
       unit: true,
       locale: true,
+      mustChangePassword: true,
     },
   });
   return user;
 }
 
-export async function requireUser(): Promise<SessionUser> {
+export async function requireUser(opts?: {
+  allowMustChange?: boolean;
+}): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!user.enabled) redirect("/pending");
+  if (user.mustChangePassword && !opts?.allowMustChange) {
+    redirect("/settings/password");
+  }
   return user;
 }
 

@@ -1,10 +1,12 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, hashPassword } from "@/lib/auth";
 
 const UpdateSchema = z.object({
   userId: z.string().min(1),
@@ -66,4 +68,52 @@ export async function setRoleAction(
   });
   revalidatePath("/admin/users");
   return {};
+}
+
+function generateTempPassword(length = 14): string {
+  // URL-safe, human-copy-friendly. Avoid ambiguous chars.
+  const alphabet =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const bytes = randomBytes(length);
+  let out = "";
+  for (let i = 0; i < length; i++) {
+    out += alphabet[bytes[i] % alphabet.length];
+  }
+  return out;
+}
+
+export async function resetPasswordAction(formData: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  if (!userId) {
+    redirect("/admin/users");
+  }
+  if (userId === admin.id) {
+    redirect(
+      "/admin/users?error=" +
+        encodeURIComponent("Use your own Change password page instead."),
+    );
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!target) {
+    redirect("/admin/users?error=" + encodeURIComponent("User not found."));
+  }
+
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash, mustChangePassword: true },
+  });
+
+  revalidatePath("/admin/users");
+  redirect(
+    `/admin/users/${userId}/reset-password?temp=${encodeURIComponent(
+      tempPassword,
+    )}`,
+  );
 }

@@ -1,16 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 
 import { createTripAction, type TripFormState } from "./actions";
 
-type Vehicle = {
+export type TripFormVehicle = {
   id: string;
   name: string;
   licensePlate: string | null;
   currentOdometerDisplay: string;
+  // Default start odometer in the user's unit, taken from the most recent
+  // trip's end odometer (or the vehicle's current odometer if no trips).
+  defaultStartOdometer: number;
 };
 
 const initialState: TripFormState = {};
@@ -23,7 +26,7 @@ export type TripFormLabels = {
   driver: string;
   startOdometer: string;
   endOdometer: string;
-  fuel: string;
+  startPrefillHelp: string;
   notes: string;
   save: string;
   saving: string;
@@ -49,13 +52,36 @@ export function TripForm({
   defaultDriverName,
   labels,
 }: {
-  vehicles: Vehicle[];
+  vehicles: TripFormVehicle[];
   defaultVehicleId?: string;
   defaultDriverName?: string;
   labels: TripFormLabels;
 }) {
   const [state, action] = useActionState(createTripAction, initialState);
   const today = new Date().toISOString().slice(0, 10);
+
+  const vehiclesById = useMemo(
+    () => Object.fromEntries(vehicles.map((v) => [v.id, v])),
+    [vehicles],
+  );
+
+  const initialVehicleId = defaultVehicleId ?? "";
+  const [selectedVehicleId, setSelectedVehicleId] = useState(initialVehicleId);
+  const [startOdometer, setStartOdometer] = useState<string>(
+    initialVehicleId && vehiclesById[initialVehicleId]
+      ? String(vehiclesById[initialVehicleId].defaultStartOdometer)
+      : "",
+  );
+
+  function onVehicleChange(id: string) {
+    setSelectedVehicleId(id);
+    const v = vehiclesById[id];
+    if (v) {
+      setStartOdometer(String(v.defaultStartOdometer));
+    } else {
+      setStartOdometer("");
+    }
+  }
 
   return (
     <form action={action} className="space-y-5">
@@ -71,7 +97,8 @@ export function TripForm({
             id="vehicleId"
             name="vehicleId"
             required
-            defaultValue={defaultVehicleId ?? ""}
+            value={selectedVehicleId}
+            onChange={(e) => onVehicleChange(e.target.value)}
             className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
           >
             <option value="" disabled>
@@ -100,15 +127,28 @@ export function TripForm({
           required
           defaultValue={defaultDriverName}
         />
-        <Field
-          name="startOdometer"
-          label={labels.startOdometer}
-          type="number"
-          required
-          min={0}
-          step="1"
-          selectOnFocus
-        />
+        <div>
+          <label
+            htmlFor="startOdometer"
+            className="block text-sm font-medium text-zinc-700"
+          >
+            {labels.startOdometer}
+            <span className="ml-0.5 text-red-500">*</span>
+          </label>
+          <input
+            id="startOdometer"
+            name="startOdometer"
+            type="number"
+            required
+            min={0}
+            step="1"
+            value={startOdometer}
+            onChange={(e) => setStartOdometer(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
+            className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          />
+          <p className="mt-1 text-xs text-zinc-500">{labels.startPrefillHelp}</p>
+        </div>
         <Field
           name="endOdometer"
           label={labels.endOdometer}
@@ -117,13 +157,6 @@ export function TripForm({
           min={0}
           step="1"
           selectOnFocus
-        />
-        <Field
-          name="fuelLiters"
-          label={labels.fuel}
-          type="number"
-          step="0.01"
-          min={0}
         />
         <div className="md:col-span-2">
           <label
@@ -192,12 +225,10 @@ function Field({
         min={min}
         step={step}
         defaultValue={defaultValue}
-        onFocus={
-          selectOnFocus
-            ? (event) => event.currentTarget.select()
-            : undefined
-        }
-        className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        onFocus={selectOnFocus ? (e) => e.currentTarget.select() : undefined}
+        className={`mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 ${
+          type === "number" ? "font-mono" : ""
+        }`}
       />
     </div>
   );

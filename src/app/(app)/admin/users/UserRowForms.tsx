@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -110,5 +111,25 @@ export function RoleToggleForm({
       )}
       {state.error ? <ErrorNote message={state.error} /> : null}
     </form>
+  );
+}
+
+export function ResetPasswordLink({
+  userId,
+  isSelf,
+  label,
+}: {
+  userId: string;
+  isSelf: boolean;
+  label: string;
+}) {
+  if (isSelf) return <SelfPlaceholder />;
+  return (
+    <Link
+      href={`/admin/users/${userId}/reset-password`}
+      className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+    >
+      {label}
+    </Link>
   );
 }
