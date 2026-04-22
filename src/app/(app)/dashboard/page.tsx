@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { localeTag, translator } from "@/lib/i18n";
 import { formatDistance, formatOdometer } from "@/lib/units";
+import {
+  DEFAULT_PAGE_SIZE,
+  computeSkip,
+  computeTotalPages,
+  parsePage,
+} from "@/lib/pagination";
+import { Pagination } from "@/app/(app)/_components/Pagination";
 
 export const metadata = {
   title: "Dashboard · Mileage Tracker",
@@ -11,31 +18,49 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+type SearchParams = Promise<{ page?: string }>;
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const user = await requireUser();
   const t = translator(user.locale);
+  const { page: pageRaw } = await searchParams;
 
-  const [vehicles, tripCount, totalDistance] = await Promise.all([
-    prisma.vehicle.findMany({
-      where: { userId: user.id },
-      orderBy: { updatedAt: "desc" },
-      include: {
-        _count: { select: { trips: true } },
-      },
-    }),
-    prisma.trip.count({ where: { userId: user.id } }),
-    prisma.$queryRaw<{ sum: bigint | null }[]>`
-      SELECT COALESCE(SUM("endOdometer" - "startOdometer"), 0)::bigint AS sum
-      FROM "Trip"
-      WHERE "userId" = ${user.id}
-    `,
-  ]);
+  const [vehicleCount, tripCount, totalDistance, fleetOdometerRow] =
+    await Promise.all([
+      prisma.vehicle.count({ where: { userId: user.id } }),
+      prisma.trip.count({ where: { userId: user.id } }),
+      prisma.$queryRaw<{ sum: bigint | null }[]>`
+        SELECT COALESCE(SUM("endOdometer" - "startOdometer"), 0)::bigint AS sum
+        FROM "Trip"
+        WHERE "userId" = ${user.id}
+      `,
+      prisma.$queryRaw<{ sum: bigint | null }[]>`
+        SELECT COALESCE(SUM("currentOdometer"), 0)::bigint AS sum
+        FROM "Vehicle"
+        WHERE "userId" = ${user.id}
+      `,
+    ]);
+
+  const totalPages = computeTotalPages(vehicleCount);
+  const page = parsePage(pageRaw, totalPages);
+
+  const vehicles = await prisma.vehicle.findMany({
+    where: { userId: user.id },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      _count: { select: { trips: true } },
+    },
+    skip: computeSkip(page),
+    take: DEFAULT_PAGE_SIZE,
+  });
 
   const distanceTotalKm = Number(totalDistance[0]?.sum ?? 0);
-  const fleetOdometerKm = vehicles.reduce(
-    (acc, v) => acc + v.currentOdometer,
-    0,
-  );
+  const fleetOdometerKm = Number(fleetOdometerRow[0]?.sum ?? 0);
+  const tag = localeTag(user.locale);
 
   return (
     <div className="space-y-8">
@@ -59,11 +84,11 @@ export default async function DashboardPage() {
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label={t("dashboard.stat.vehicles")}
-          value={vehicles.length.toLocaleString(localeTag(user.locale))}
+          value={vehicleCount.toLocaleString(tag)}
         />
         <StatCard
           label={t("dashboard.stat.trips")}
-          value={tripCount.toLocaleString(localeTag(user.locale))}
+          value={tripCount.toLocaleString(tag)}
         />
         <StatCard
           label={t("dashboard.stat.distance")}
@@ -84,7 +109,7 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {vehicles.length === 0 ? (
+        {vehicleCount === 0 ? (
           <EmptyVehicles
             title={t("dashboard.empty.title")}
             subtitle={t("dashboard.empty.subtitle")}
@@ -92,62 +117,83 @@ export default async function DashboardPage() {
           />
         ) : (
           <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">
-                    {t("dashboard.col.vehicle")}
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    {t("dashboard.col.plate")}
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    {t("dashboard.col.trips")}
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium">
-                    {t("dashboard.col.currentOdometer")}
-                  </th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {vehicles.map((v) => (
-                  <tr key={v.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-zinc-900">{v.name}</div>
-                      {v.make || v.model ? (
-                        <div className="text-xs text-zinc-500">
-                          {[v.year, v.make, v.model]
-                            .filter(Boolean)
-                            .join(" ")}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-700">
-                      {v.licensePlate ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {v._count.trips}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-zinc-900">
-                      {formatOdometer(
-                        v.currentOdometer,
-                        user.unit,
-                        user.locale,
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/vehicles/${v.id}`}
-                        className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
-                      >
-                        {t("common.view")}
-                      </Link>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">
+                      {t("dashboard.col.vehicle")}
+                    </th>
+                    <th className="px-4 py-3 font-medium">
+                      {t("dashboard.col.plate")}
+                    </th>
+                    <th className="px-4 py-3 font-medium">
+                      {t("dashboard.col.trips")}
+                    </th>
+                    <th className="px-4 py-3 text-right font-medium">
+                      {t("dashboard.col.currentOdometer")}
+                    </th>
+                    <th className="px-4 py-3" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {vehicles.map((v) => (
+                    <tr key={v.id} className="hover:bg-zinc-50">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-zinc-900">
+                          {v.name}
+                        </div>
+                        {v.make || v.model ? (
+                          <div className="text-xs text-zinc-500">
+                            {[v.year, v.make, v.model]
+                              .filter(Boolean)
+                              .join(" ")}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-zinc-700">
+                        {v.licensePlate ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-700">
+                        {v._count.trips}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-zinc-900">
+                        {formatOdometer(
+                          v.currentOdometer,
+                          user.unit,
+                          user.locale,
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/vehicles/${v.id}`}
+                          className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
+                        >
+                          {t("common.view")}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={vehicleCount}
+              basePath="/dashboard"
+              labels={{
+                previous: t("pagination.previous"),
+                next: t("pagination.next"),
+                pageOfTotal: t("pagination.pageOfTotal", {
+                  page: page.toLocaleString(tag),
+                  total: totalPages.toLocaleString(tag),
+                }),
+                totalItems: t("pagination.totalItems", {
+                  count: vehicleCount.toLocaleString(tag),
+                }),
+              }}
+            />
           </div>
         )}
       </section>

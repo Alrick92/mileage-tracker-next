@@ -2,8 +2,15 @@ import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { translator } from "@/lib/i18n";
+import { localeTag, translator } from "@/lib/i18n";
 import { formatOdometer } from "@/lib/units";
+import {
+  DEFAULT_PAGE_SIZE,
+  computeSkip,
+  computeTotalPages,
+  parsePage,
+} from "@/lib/pagination";
+import { Pagination } from "@/app/(app)/_components/Pagination";
 import { Toast } from "@/app/(app)/_components/Toast";
 
 export const metadata = {
@@ -12,7 +19,12 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ saved?: string; deleted?: string; error?: string }>;
+type SearchParams = Promise<{
+  saved?: string;
+  deleted?: string;
+  error?: string;
+  page?: string;
+}>;
 
 export default async function VehiclesPage({
   searchParams,
@@ -23,11 +35,19 @@ export default async function VehiclesPage({
   const t = translator(user.locale);
   const params = await searchParams;
 
+  const total = await prisma.vehicle.count({ where: { userId: user.id } });
+  const totalPages = computeTotalPages(total);
+  const page = parsePage(params.page, totalPages);
+
   const vehicles = await prisma.vehicle.findMany({
     where: { userId: user.id },
     orderBy: { name: "asc" },
     include: { _count: { select: { trips: true } } },
+    skip: computeSkip(page),
+    take: DEFAULT_PAGE_SIZE,
   });
+
+  const tag = localeTag(user.locale);
 
   return (
     <div className="space-y-6">
@@ -57,7 +77,7 @@ export default async function VehiclesPage({
         </Link>
       </header>
 
-      {vehicles.length === 0 ? (
+      {total === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
           <p className="text-sm font-medium text-zinc-900">
             {t("vehicles.empty.title")}
@@ -68,54 +88,75 @@ export default async function VehiclesPage({
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">
-                  {t("dashboard.col.vehicle")}
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  {t("dashboard.col.plate")}
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  {t("dashboard.col.trips")}
-                </th>
-                <th className="px-4 py-3 text-right font-medium">
-                  {t("dashboard.col.currentOdometer")}
-                </th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {vehicles.map((v) => (
-                <tr key={v.id} className="hover:bg-zinc-50">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-zinc-900">{v.name}</div>
-                    {v.make || v.model ? (
-                      <div className="text-xs text-zinc-500">
-                        {[v.year, v.make, v.model].filter(Boolean).join(" ")}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs text-zinc-700">
-                    {v.licensePlate ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-700">{v._count.trips}</td>
-                  <td className="px-4 py-3 text-right font-mono text-zinc-900">
-                    {formatOdometer(v.currentOdometer, user.unit, user.locale)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/vehicles/${v.id}`}
-                      className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
-                    >
-                      {t("common.view")}
-                    </Link>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">
+                    {t("dashboard.col.vehicle")}
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    {t("dashboard.col.plate")}
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    {t("dashboard.col.trips")}
+                  </th>
+                  <th className="px-4 py-3 text-right font-medium">
+                    {t("dashboard.col.currentOdometer")}
+                  </th>
+                  <th className="px-4 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {vehicles.map((v) => (
+                  <tr key={v.id} className="hover:bg-zinc-50">
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-zinc-900">{v.name}</div>
+                      {v.make || v.model ? (
+                        <div className="text-xs text-zinc-500">
+                          {[v.year, v.make, v.model].filter(Boolean).join(" ")}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-zinc-700">
+                      {v.licensePlate ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-700">
+                      {v._count.trips}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-zinc-900">
+                      {formatOdometer(v.currentOdometer, user.unit, user.locale)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        href={`/vehicles/${v.id}`}
+                        className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
+                      >
+                        {t("common.view")}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            basePath="/vehicles"
+            labels={{
+              previous: t("pagination.previous"),
+              next: t("pagination.next"),
+              pageOfTotal: t("pagination.pageOfTotal", {
+                page: page.toLocaleString(tag),
+                total: totalPages.toLocaleString(tag),
+              }),
+              totalItems: t("pagination.totalItems", {
+                count: total.toLocaleString(tag),
+              }),
+            }}
+          />
         </div>
       )}
     </div>

@@ -30,6 +30,11 @@
   "common.yes": "Oui",
   "common.no": "Non",
 
+  "pagination.previous": "Précédent",
+  "pagination.next": "Suivant",
+  "pagination.pageOfTotal": "Page {page} sur {total}",
+  "pagination.totalItems": "{count} élément(s) au total",
+
   "unit.km.short": "km",
   "unit.mi.short": "mi",
 
