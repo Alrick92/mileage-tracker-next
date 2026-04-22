@@ -118,7 +118,7 @@
   "trips.import.title": "Importer des trajets depuis un CSV",
   "trips.import.subtitle": "Sélectionnez le véhicule auquel ces trajets appartiennent, puis téléversez un CSV. Les odomètres sont interprétés dans votre unité actuelle ({unit}).",
   "trips.import.formatHeading": "Format attendu",
-  "trips.import.formatBody": "Le CSV doit contenir une ligne d'en-tête. Colonnes requises : Date, Conducteur, Début, Fin. Facultative : Notes. Les colonnes Véhicule et Plaque d'immatriculation (du CSV exporté) sont ignorées — chaque ligne importée est attribuée au véhicule sélectionné ci-dessous.",
+  "trips.import.formatBody": "Le CSV doit contenir une ligne d'en-tête. Colonnes requises : Date, Début, Fin. Facultative : Notes. Les colonnes Conducteur, Véhicule et Plaque d'immatriculation (du CSV exporté) sont ignorées — le conducteur correspond au nom de votre compte et chaque ligne importée est attribuée au véhicule sélectionné ci-dessous.",
   "trips.import.vehicle": "Véhicule",
   "trips.import.vehiclePlaceholder": "Sélectionner un véhicule…",
   "trips.import.vehicleHelp": "Toutes les lignes du CSV téléversé seront attribuées à ce véhicule.",

@@ -80,19 +80,20 @@ export async function importTripsAction(
   const headerRow = rows[0].map(normalizeHeader);
   const colIndex = (name: string) => headerRow.indexOf(name);
 
-  const required = ["date", "driver", "start", "end"] as const;
+  const required = ["date", "start", "end"] as const;
   const missing = required.filter((r) => colIndex(r) === -1);
   if (missing.length > 0) {
     return {
-      error: `CSV is missing required column(s): ${missing.join(", ")}. Required columns: Date, Driver, Start, End. Notes is optional.`,
+      error: `CSV is missing required column(s): ${missing.join(", ")}. Required columns: Date, Start, End. Notes is optional.`,
     };
   }
 
   const iDate = colIndex("date");
-  const iDriver = colIndex("driver");
   const iStart = colIndex("start");
   const iEnd = colIndex("end");
   const iNotes = colIndex("notes");
+
+  const driverName = (user.name ?? "").trim() || user.email;
 
   const dataRows = rows.slice(1);
   if (dataRows.length === 0) {
@@ -101,7 +102,6 @@ export async function importTripsAction(
 
   type ValidRow = {
     rowNumber: number;
-    driverName: string;
     date: Date;
     startOdometerKm: number;
     endOdometerKm: number;
@@ -124,16 +124,6 @@ export async function importTripsAction(
     const parsedDate = new Date(dateRaw);
     if (Number.isNaN(parsedDate.getTime())) {
       pushError(`Invalid date: "${dateRaw}" (expected YYYY-MM-DD).`);
-      return;
-    }
-
-    const driverRaw = (cells[iDriver] ?? "").trim();
-    if (!driverRaw) {
-      pushError("Driver is required.");
-      return;
-    }
-    if (driverRaw.length > 120) {
-      pushError("Driver name is too long (max 120).");
       return;
     }
 
@@ -172,7 +162,6 @@ export async function importTripsAction(
 
     valid.push({
       rowNumber,
-      driverName: driverRaw,
       date: parsedDate,
       startOdometerKm: parseOdometerToKm(startNum, unit),
       endOdometerKm: parseOdometerToKm(endNum, unit),
@@ -199,7 +188,7 @@ export async function importTripsAction(
       data: valid.map((row) => ({
         vehicleId: vehicle.id,
         userId: user.id,
-        driverName: row.driverName,
+        driverName,
         date: row.date,
         startOdometer: row.startOdometerKm,
         endOdometer: row.endOdometerKm,
