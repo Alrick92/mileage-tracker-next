@@ -35,57 +35,62 @@ ever sent to the browser.
 8. **Admin console** — admins can enable/disable users and promote/demote
    between `USER` and `ADMIN` roles.
 
-## Local development
+## Running the app
 
-### 1. Prerequisites
+Two supported modes: **full-stack Docker Compose** (recommended for deploys)
+and **host Node + containerized Postgres** (typical for local dev).
 
-- Node.js 20+ (22 recommended)
-- Docker / Docker Compose
+### Prerequisites
 
-### 2. Start PostgreSQL
+- Docker / Docker Compose (both modes)
+- Node.js 20+ (dev mode only)
 
-```bash
-docker compose up -d
-```
-
-This starts a `postgres:16-alpine` container on port `5432` with database
-`mileage`, user `mileage`, password `mileage` (see `docker-compose.yml`).
-
-### 3. Configure env vars
+### Configure env vars (both modes)
 
 ```bash
 cp .env.example .env
-# edit .env and set AUTH_SECRET to a long random string
-# e.g. AUTH_SECRET=$(openssl rand -base64 32)
-# also set ADMIN_EMAIL and ADMIN_PASSWORD for the first admin account
+# At minimum set a strong AUTH_SECRET and the admin credentials:
+#   AUTH_SECRET=$(openssl rand -base64 32)
+#   ADMIN_EMAIL=admin@example.com
+#   ADMIN_PASSWORD=<something 8+ chars>
 ```
 
-### 4. Install dependencies and apply the schema
+### Mode 1 — Full stack via Docker Compose (deploy)
 
 ```bash
+docker compose up --build -d
+```
+
+This builds the app image and starts **two** services:
+
+- `db` — `postgres:16-alpine` with a named volume for durability
+- `app` — the Next.js app on port `3000`
+
+On each `app` start the entrypoint automatically:
+
+1. Runs `prisma migrate deploy` against the db
+2. Upserts the admin account from `ADMIN_EMAIL` / `ADMIN_PASSWORD` /
+   `ADMIN_NAME` (skipped if those are unset)
+3. Starts `next start`
+
+Open [http://localhost:3000](http://localhost:3000) and sign in with the
+admin account. New self-registered users land on a **pending approval**
+screen until the admin enables them in `/admin/users`.
+
+To override the listening port, DB name, credentials, etc., set the optional
+vars in `.env` (see the commented block in `.env.example`). To disable the
+automatic migration or admin seed on boot, set `RUN_MIGRATIONS=0` or
+`SEED_ADMIN=0` in the `app` environment.
+
+### Mode 2 — Host Node + dockerized Postgres (dev)
+
+```bash
+docker compose up -d db                 # database only
 npm install
-npx prisma migrate dev
+npx prisma migrate dev                  # creates/updates dev schema
+npm run seed:admin                      # reads .env for admin creds
+npm run dev                             # http://localhost:3000
 ```
-
-### 5. Seed the first admin account
-
-```bash
-npm run seed:admin
-```
-
-This upserts a user using the `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME`
-env vars with `role=ADMIN` and `enabled=true`. Re-running the script rotates
-the admin's password to the current value of `ADMIN_PASSWORD`.
-
-### 6. Run the dev server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000). Sign in with the seeded
-admin account. Regular users who register will see a **pending approval**
-screen until the admin enables them from `/admin/users`.
 
 ## Scripts
 
@@ -123,7 +128,9 @@ scripts/
   seed-admin.ts            # idempotent first-admin seeder
 prisma/
   schema.prisma            # User / Vehicle / Trip models + Role/Unit/Locale enums
-docker-compose.yml         # PostgreSQL service
+Dockerfile                 # Multi-stage build for the Next.js app
+docker-compose.yml         # Full stack: db + app services
+docker-entrypoint.sh       # Runs prisma migrate deploy + admin seed on boot
 ```
 
 ## Units and internationalisation

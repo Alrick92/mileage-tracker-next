@@ -4,18 +4,45 @@ services:
     container_name: mileage-tracker-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: mileage
-      POSTGRES_PASSWORD: mileage
-      POSTGRES_DB: mileage
+      POSTGRES_USER: ${POSTGRES_USER:-mileage}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mileage}
+      POSTGRES_DB: ${POSTGRES_DB:-mileage}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mileage -d mileage"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mileage} -d ${POSTGRES_DB:-mileage}"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mileage-tracker-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mileage}:${POSTGRES_PASSWORD:-mileage}@db:5432/${POSTGRES_DB:-mileage}?schema=public
+      AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET must be set - generate with openssl rand -base64 32}"
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   pgdata:
