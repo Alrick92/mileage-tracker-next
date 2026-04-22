@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
@@ -91,10 +92,20 @@ export async function updateEmailAction(
     return { error: "An account with that email already exists." };
   }
 
-  await prisma.user.update({
-    where: { id: dbUser.id },
-    data: { email: parsed.data.email },
-  });
+  try {
+    await prisma.user.update({
+      where: { id: dbUser.id },
+      data: { email: parsed.data.email },
+    });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return { error: "An account with that email already exists." };
+    }
+    throw err;
+  }
 
   // Re-sign the session so the JWT's email claim reflects the new value.
   await createSession({
