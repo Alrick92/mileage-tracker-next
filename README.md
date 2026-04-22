@@ -64,7 +64,7 @@ docker compose up --build -d
 This builds the app image and starts **two** services:
 
 - `db` — `postgres:16-alpine` with a named volume for durability
-- `app` — the Next.js app on port `3000`
+- `app` — the Next.js app, listening on `3000` inside the compose network only
 
 On each `app` start the entrypoint automatically:
 
@@ -73,14 +73,23 @@ On each `app` start the entrypoint automatically:
    `ADMIN_NAME` (skipped if those are unset)
 3. Starts `next start`
 
-Open [http://localhost:3000](http://localhost:3000) and sign in with the
-admin account. New self-registered users land on a **pending approval**
-screen until the admin enables them in `/admin/users`.
+**Port 3000 is intentionally not published to the host.** Put a reverse proxy
+(Caddy, nginx, Traefik, the host's existing ingress, etc.) in front of the
+`app` service and have it forward to `http://app:3000` over the compose
+network. For local smoke-testing, create a `docker-compose.override.yml`:
 
-To override the listening port, DB name, credentials, etc., set the optional
-vars in `.env` (see the commented block in `.env.example`). To disable the
-automatic migration or admin seed on boot, set `RUN_MIGRATIONS=0` or
-`SEED_ADMIN=0` in the `app` environment.
+```yaml
+services:
+  app:
+    ports:
+      - "3000:3000"
+```
+
+Then `docker compose up -d` will publish the app at http://localhost:3000 while
+keeping the production compose file unchanged.
+
+To disable the automatic migration or admin seed on boot, set
+`RUN_MIGRATIONS=0` or `SEED_ADMIN=0` in the `app` environment.
 
 ### Mode 2 — Host Node + dockerized Postgres (dev)
 
