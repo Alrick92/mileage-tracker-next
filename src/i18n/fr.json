@@ -77,6 +77,7 @@
   "trips.title": "Trajets",
   "trips.subtitle": "Tous les trajets enregistrés de votre flotte.",
   "trips.exportCsv": "Exporter CSV",
+  "trips.importCsv": "Importer CSV",
   "trips.logTrip": "Enregistrer un trajet",
   "trips.summary.shown": "Trajets affichés",
   "trips.summary.distance": "Distance",
@@ -107,6 +108,19 @@
 
   "trip.delete.title": "Supprimer ce trajet ?",
   "trip.delete.subtitle": "Cette action est irréversible.",
+
+  "trips.import.title": "Importer des trajets depuis un CSV",
+  "trips.import.subtitle": "Téléversez un CSV de trajets. Les odomètres sont interprétés dans votre unité actuelle ({unit}) et les véhicules sont identifiés par plaque d'immatriculation.",
+  "trips.import.formatHeading": "Format attendu",
+  "trips.import.formatBody": "Le CSV doit contenir une ligne d'en-tête. Colonnes requises : Date, Plaque d'immatriculation, Conducteur, Début, Fin. Facultatives : Véhicule, Distance (recalculée), Notes. Réimporter un fichier exporté depuis l'application fonctionne tel quel.",
+  "trips.import.chooseFile": "Fichier CSV",
+  "trips.import.fileHelp": "5 Mo max. Dates au format AAAA-MM-JJ. Odomètres en nombres entiers dans votre unité actuelle.",
+  "trips.import.submit": "Importer",
+  "trips.import.submitting": "Importation…",
+  "trips.import.resultImported": "{count} trajet(s) importé(s).",
+  "trips.import.resultSkipped": "{count} ligne(s) ignorée(s).",
+  "trips.import.resultErrorsHeading": "Lignes ignorées",
+  "trips.import.rowLabel": "Ligne",
 
   "settings.title": "Paramètres",
   "settings.subtitle": "Choisissez l'affichage des distances et de l'interface.",

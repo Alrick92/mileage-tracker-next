@@ -77,6 +77,7 @@
   "trips.title": "Trips",
   "trips.subtitle": "All logged trips across your fleet.",
   "trips.exportCsv": "Export CSV",
+  "trips.importCsv": "Import CSV",
   "trips.logTrip": "Log trip",
   "trips.summary.shown": "Trips shown",
   "trips.summary.distance": "Distance",
@@ -107,6 +108,19 @@
 
   "trip.delete.title": "Delete trip?",
   "trip.delete.subtitle": "This action cannot be undone.",
+
+  "trips.import.title": "Import trips from CSV",
+  "trips.import.subtitle": "Upload a CSV of trips. Odometer values are interpreted in your current unit ({unit}) and vehicles are matched by license plate.",
+  "trips.import.formatHeading": "Expected format",
+  "trips.import.formatBody": "The CSV must have a header row. Required columns: Date, License plate, Driver, Start, End. Optional: Vehicle, Distance (recomputed), Notes. Re-importing a file you exported from this app works out of the box.",
+  "trips.import.chooseFile": "CSV file",
+  "trips.import.fileHelp": "Max 5 MB. Dates in YYYY-MM-DD. Odometers as whole numbers in your current unit.",
+  "trips.import.submit": "Import",
+  "trips.import.submitting": "Importing…",
+  "trips.import.resultImported": "{count} trip(s) imported.",
+  "trips.import.resultSkipped": "{count} row(s) skipped.",
+  "trips.import.resultErrorsHeading": "Skipped rows",
+  "trips.import.rowLabel": "Row",
 
   "settings.title": "Settings",
   "settings.subtitle": "Choose how distances and text are displayed.",

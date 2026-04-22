@@ -77,6 +77,12 @@ export default async function TripsPage({
             {t("trips.exportCsv")}
           </a>
           <Link
+            href="/trips/import"
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          >
+            {t("trips.importCsv")}
+          </Link>
+          <Link
             href="/trips/new"
             className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
           >
