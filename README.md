@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mileage Tracker
 
-## Getting Started
+Multi-user vehicle fleet mileage tracker. Log trips, track fuel usage, monitor
+total distance per vehicle, and export trip data to CSV.
 
-First, run the development server:
+## Tech stack
+
+- **Next.js 16** (App Router, React Server Components, Server Actions)
+- **Tailwind CSS 4**
+- **PostgreSQL 16** (containerised via Docker Compose)
+- **Prisma** ORM
+- **Custom JWT session auth** (`jose` + `bcryptjs`) stored in an httpOnly cookie
+
+All database access happens server-side in Server Components, Server Actions,
+and Route Handlers. No database credentials, session secrets, or API keys are
+ever sent to the browser.
+
+## Features
+
+1. **Authentication** — email + password registration and sign-in; sessions
+   stored in an httpOnly JWT cookie.
+2. **Dashboard** — fleet overview with vehicle list, current odometer readings
+   and aggregate stats.
+3. **Vehicle management** — add vehicles, view per-vehicle trip history.
+4. **Trip logging** — form for `Date`, `Start Odometer`, `End Odometer`,
+   `Driver`, plus optional fuel usage and notes. Submitting a trip updates the
+   vehicle's current odometer when appropriate.
+5. **CSV export** — download all trips (or trips for a single vehicle) as CSV.
+
+## Local development
+
+### 1. Prerequisites
+
+- Node.js 20+ (22 recommended)
+- Docker / Docker Compose
+
+### 2. Start PostgreSQL
+
+```bash
+docker compose up -d
+```
+
+This starts a `postgres:16-alpine` container on port `5432` with database
+`mileage`, user `mileage`, password `mileage` (see `docker-compose.yml`).
+
+### 3. Configure env vars
+
+```bash
+cp .env.example .env
+# edit .env and set AUTH_SECRET to a long random string
+# e.g. AUTH_SECRET=$(openssl rand -base64 32)
+```
+
+### 4. Install dependencies and apply the schema
+
+```bash
+npm install
+npx prisma migrate dev --name init
+```
+
+### 5. Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Register a new account,
+then add a vehicle and start logging trips.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` — Next.js dev server
+- `npm run build` — production build
+- `npm run start` — start the built app
+- `npm run lint` — ESLint
+- `npx prisma studio` — database GUI
+- `npx prisma migrate dev` — apply schema changes in development
+- `npx prisma migrate deploy` — apply migrations in production
 
-## Learn More
+## Project layout
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/
+    (app)/                 # authenticated area with sidebar layout
+      dashboard/
+      vehicles/
+      trips/
+    api/trips/export/      # CSV export route handler
+    login/ register/       # public auth pages
+  lib/
+    auth.ts                # JWT session helpers (server-only)
+    prisma.ts              # Prisma client singleton
+    csv.ts                 # CSV serialisation helper
+prisma/
+  schema.prisma            # User / Vehicle / Trip models
+docker-compose.yml         # PostgreSQL service
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Security notes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/lib/auth.ts` is marked `import "server-only"` — the session secret and
+  password hashing helpers can never be bundled into client code.
+- The Prisma client is instantiated only in server code; API keys and the
+  database URL live in `.env` (gitignored) and never reach the browser.
+- Passwords are stored as bcrypt hashes (cost 10).
+- Sessions are signed JWTs in an httpOnly, SameSite=Lax cookie.
