@@ -35,14 +35,20 @@ export default async function VehiclesPage({
   const t = translator(user.locale);
   const params = await searchParams;
 
-  const total = await prisma.vehicle.count({ where: { userId: user.id } });
+  const assignmentFilter = {
+    assignments: { some: { userId: user.id } },
+  } as const;
+
+  const total = await prisma.vehicle.count({ where: assignmentFilter });
   const totalPages = computeTotalPages(total);
   const page = parsePage(params.page, totalPages);
 
   const vehicles = await prisma.vehicle.findMany({
-    where: { userId: user.id },
+    where: assignmentFilter,
     orderBy: { name: "asc" },
-    include: { _count: { select: { trips: true } } },
+    include: {
+      _count: { select: { trips: true, assignments: true } },
+    },
     skip: computeSkip(page),
     take: DEFAULT_PAGE_SIZE,
   });
@@ -111,7 +117,16 @@ export default async function VehiclesPage({
                 {vehicles.map((v) => (
                   <tr key={v.id} className="hover:bg-zinc-50">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-zinc-900">{v.name}</div>
+                      <div className="font-medium text-zinc-900">
+                        {v.name}
+                        {v._count.assignments > 1 ? (
+                          <span className="ml-2 inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-zinc-700">
+                            {t("vehicles.sharedBadge", {
+                              count: String(v._count.assignments),
+                            })}
+                          </span>
+                        ) : null}
+                      </div>
                       {v.make || v.model ? (
                         <div className="text-xs text-zinc-500">
                           {[v.year, v.make, v.model].filter(Boolean).join(" ")}

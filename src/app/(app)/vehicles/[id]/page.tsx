@@ -41,7 +41,16 @@ export default async function VehicleDetailPage({
   const { page: pageRaw } = await searchParams;
 
   const vehicle = await prisma.vehicle.findFirst({
-    where: { id, userId: user.id },
+    where: {
+      id,
+      assignments: { some: { userId: user.id } },
+    },
+    include: {
+      assignments: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
   if (!vehicle) notFound();
 
@@ -129,6 +138,43 @@ export default async function VehicleDetailPage({
           label={t("dashboard.stat.distance")}
           value={formatDistance(totalDistanceKm, unit, locale)}
         />
+      </section>
+
+      <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+            {t("vehicle.drivers.heading")}
+          </h2>
+          {user.role === "ADMIN" ? (
+            <Link
+              href={`/admin/vehicles/${vehicle.id}/assignments`}
+              className="rounded-md border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+            >
+              {t("vehicle.drivers.manage")}
+            </Link>
+          ) : null}
+        </div>
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {vehicle.assignments.map((a) => (
+            <li
+              key={a.id}
+              className="inline-flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700"
+            >
+              <span className="font-medium text-zinc-900">{a.user.name}</span>
+              <span className="font-mono text-zinc-500">{a.user.email}</span>
+              {a.user.id === user.id ? (
+                <span className="text-[10px] uppercase tracking-wide text-zinc-400">
+                  {t("admin.youLabel")}
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        {vehicle.assignments.length <= 1 && user.role !== "ADMIN" ? (
+          <p className="mt-3 text-xs text-zinc-500">
+            {t("vehicle.drivers.soleHint")}
+          </p>
+        ) : null}
       </section>
 
       {tripCount === 0 ? (

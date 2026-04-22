@@ -29,9 +29,13 @@ export default async function DashboardPage({
   const t = translator(user.locale);
   const { page: pageRaw } = await searchParams;
 
+  const assignmentFilter = {
+    assignments: { some: { userId: user.id } },
+  } as const;
+
   const [vehicleCount, tripCount, totalDistance, fleetOdometerRow] =
     await Promise.all([
-      prisma.vehicle.count({ where: { userId: user.id } }),
+      prisma.vehicle.count({ where: assignmentFilter }),
       prisma.trip.count({ where: { userId: user.id } }),
       prisma.$queryRaw<{ sum: bigint | null }[]>`
         SELECT COALESCE(SUM("endOdometer" - "startOdometer"), 0)::bigint AS sum
@@ -39,9 +43,12 @@ export default async function DashboardPage({
         WHERE "userId" = ${user.id}
       `,
       prisma.$queryRaw<{ sum: bigint | null }[]>`
-        SELECT COALESCE(SUM("currentOdometer"), 0)::bigint AS sum
-        FROM "Vehicle"
-        WHERE "userId" = ${user.id}
+        SELECT COALESCE(SUM(v."currentOdometer"), 0)::bigint AS sum
+        FROM "Vehicle" v
+        WHERE EXISTS (
+          SELECT 1 FROM "VehicleAssignment" va
+          WHERE va."vehicleId" = v."id" AND va."userId" = ${user.id}
+        )
       `,
     ]);
 
@@ -49,7 +56,7 @@ export default async function DashboardPage({
   const page = parsePage(pageRaw, totalPages);
 
   const vehicles = await prisma.vehicle.findMany({
-    where: { userId: user.id },
+    where: assignmentFilter,
     orderBy: { updatedAt: "desc" },
     include: {
       _count: { select: { trips: true } },

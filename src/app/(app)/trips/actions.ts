@@ -65,7 +65,10 @@ export async function createTripAction(
   }
 
   const vehicle = await prisma.vehicle.findFirst({
-    where: { id: parsed.data.vehicleId, userId: user.id },
+    where: {
+      id: parsed.data.vehicleId,
+      assignments: { some: { userId: user.id } },
+    },
     select: { id: true, currentOdometer: true },
   });
   if (!vehicle) {
@@ -138,7 +141,10 @@ export async function updateTripAction(
   }
 
   const vehicle = await prisma.vehicle.findFirst({
-    where: { id: parsed.data.vehicleId, userId: user.id },
+    where: {
+      id: parsed.data.vehicleId,
+      assignments: { some: { userId: user.id } },
+    },
     select: { id: true, initialOdometer: true },
   });
   if (!vehicle) {

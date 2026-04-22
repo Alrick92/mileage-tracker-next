@@ -52,10 +52,13 @@ export default async function AdminFleetPage({
 
   const [vehicles, trips] = await Promise.all([
     prisma.vehicle.findMany({
-      orderBy: [{ user: { name: "asc" } }, { name: "asc" }],
+      orderBy: [{ name: "asc" }],
       include: {
         _count: { select: { trips: true } },
-        user: { select: { name: true, email: true } },
+        assignments: {
+          include: { user: { select: { name: true, email: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
       skip: computeSkip(vehiclePage),
       take: DEFAULT_PAGE_SIZE,
@@ -133,7 +136,7 @@ export default async function AdminFleetPage({
                       {t("dashboard.col.vehicle")}
                     </th>
                     <th className="px-4 py-3 font-medium">
-                      {t("admin.fleet.owner")}
+                      {t("admin.fleet.drivers")}
                     </th>
                     <th className="px-4 py-3 font-medium">
                       {t("dashboard.col.plate")}
@@ -144,6 +147,7 @@ export default async function AdminFleetPage({
                     <th className="px-4 py-3 text-right font-medium">
                       {t("dashboard.col.currentOdometer")}
                     </th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -160,10 +164,24 @@ export default async function AdminFleetPage({
                         ) : null}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-zinc-900">{v.user.name}</div>
-                        <div className="font-mono text-xs text-zinc-500">
-                          {v.user.email}
-                        </div>
+                        {v.assignments.length === 0 ? (
+                          <span className="text-xs text-zinc-400">
+                            {t("admin.fleet.noDrivers")}
+                          </span>
+                        ) : (
+                          <ul className="space-y-0.5">
+                            {v.assignments.map((a) => (
+                              <li key={a.id} className="leading-tight">
+                                <div className="text-zinc-900">
+                                  {a.user.name}
+                                </div>
+                                <div className="font-mono text-[10px] text-zinc-500">
+                                  {a.user.email}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-zinc-700">
                         {v.licensePlate ?? "—"}
@@ -173,6 +191,14 @@ export default async function AdminFleetPage({
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-zinc-900">
                         {formatOdometer(v.currentOdometer, unit, locale)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <a
+                          href={`/admin/vehicles/${v.id}/assignments`}
+                          className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
+                        >
+                          {t("admin.fleet.manage")}
+                        </a>
                       </td>
                     </tr>
                   ))}

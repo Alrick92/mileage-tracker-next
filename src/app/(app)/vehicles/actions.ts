@@ -74,10 +74,9 @@ export async function createVehicleAction(
     user.unit as Unit,
   );
 
-  try {
-    await prisma.vehicle.create({
+  await prisma.$transaction(async (tx) => {
+    const vehicle = await tx.vehicle.create({
       data: {
-        userId: user.id,
         name: parsed.data.name,
         make: parsed.data.make,
         model: parsed.data.model,
@@ -87,18 +86,10 @@ export async function createVehicleAction(
         currentOdometer: currentOdometerKm,
       },
     });
-  } catch (err: unknown) {
-    // Prisma unique violation on (userId, licensePlate) when plate reused
-    if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code: string }).code === "P2002"
-    ) {
-      return { error: "You already have a vehicle with that license plate." };
-    }
-    throw err;
-  }
+    await tx.vehicleAssignment.create({
+      data: { vehicleId: vehicle.id, userId: user.id },
+    });
+  });
 
   revalidatePath("/dashboard");
   revalidatePath("/vehicles");
@@ -112,9 +103,18 @@ export async function deleteVehicleAction(formData: FormData): Promise<void> {
     redirect("/vehicles?error=" + encodeURIComponent("Missing vehicle id"));
   }
 
+  // Only admins can delete a shared vehicle; a regular user can delete a
+  // vehicle only when they are its sole assignee. This protects the other
+  // drivers of a shared vehicle from one of them wiping it out.
   const vehicle = await prisma.vehicle.findFirst({
-    where: { id: vehicleId, userId: user.id },
-    select: { id: true, _count: { select: { trips: true } } },
+    where: {
+      id: vehicleId,
+      assignments: { some: { userId: user.id } },
+    },
+    select: {
+      id: true,
+      _count: { select: { trips: true, assignments: true } },
+    },
   });
   if (!vehicle) {
     redirect("/vehicles?error=" + encodeURIComponent("Vehicle not found"));
@@ -124,6 +124,14 @@ export async function deleteVehicleAction(formData: FormData): Promise<void> {
       `/vehicles/${vehicleId}/delete?error=` +
         encodeURIComponent(
           `Cannot delete: vehicle still has ${vehicle._count.trips} trip(s). Delete them first.`,
+        ),
+    );
+  }
+  if (vehicle._count.assignments > 1 && user.role !== "ADMIN") {
+    redirect(
+      `/vehicles/${vehicleId}/delete?error=` +
+        encodeURIComponent(
+          "This vehicle is shared with other drivers. Only an administrator can delete it.",
         ),
     );
   }

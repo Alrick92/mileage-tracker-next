@@ -28,7 +28,7 @@ export default async function EditTripPage({ params }: { params: Params }) {
   if (!trip) notFound();
 
   const vehiclesRaw = await prisma.vehicle.findMany({
-    where: { userId: user.id },
+    where: { assignments: { some: { userId: user.id } } },
     orderBy: { name: "asc" },
     select: {
       id: true,
