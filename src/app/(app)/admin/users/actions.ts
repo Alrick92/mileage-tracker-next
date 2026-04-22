@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
@@ -89,6 +90,108 @@ function generateTempPassword(length = 14): string {
     }
   }
   return out;
+}
+
+const AdminEmailSchema = UpdateSchema.extend({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+});
+
+const AdminPasswordSchema = UpdateSchema.extend({
+  newPassword: z.string().min(10, "Password must be at least 10 characters."),
+  confirmPassword: z.string().min(1),
+}).refine((d) => d.newPassword === d.confirmPassword, {
+  message: "New passwords do not match.",
+  path: ["confirmPassword"],
+});
+
+export async function adminUpdateEmailAction(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  const parsed = AdminEmailSchema.safeParse({
+    userId: formData.get("userId"),
+    email: formData.get("email"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  if (parsed.data.userId === admin.id) {
+    return { error: "Use Settings to change your own email." };
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: parsed.data.userId },
+    select: { id: true, email: true },
+  });
+  if (!target) return { error: "User not found." };
+
+  if (target.email === parsed.data.email) {
+    return { error: "New email matches the current email." };
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { email: parsed.data.email },
+    select: { id: true },
+  });
+  if (existing && existing.id !== target.id) {
+    return { error: "An account with that email already exists." };
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: target.id },
+      data: { email: parsed.data.email },
+    });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return { error: "An account with that email already exists." };
+    }
+    throw err;
+  }
+
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${target.id}/edit`);
+  redirect(`/admin/users/${target.id}/edit?emailUpdated=1`);
+}
+
+export async function adminSetPasswordAction(
+  _prev: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  const parsed = AdminPasswordSchema.safeParse({
+    userId: formData.get("userId"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  if (parsed.data.userId === admin.id) {
+    return { error: "Use Settings to change your own password." };
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: parsed.data.userId },
+    select: { id: true },
+  });
+  if (!target) return { error: "User not found." };
+
+  const passwordHash = await hashPassword(parsed.data.newPassword);
+  await prisma.user.update({
+    where: { id: target.id },
+    data: { passwordHash, mustChangePassword: false },
+  });
+
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${target.id}/edit`);
+  redirect(`/admin/users/${target.id}/edit?passwordUpdated=1`);
 }
 
 export async function resetPasswordAction(formData: FormData): Promise<void> {

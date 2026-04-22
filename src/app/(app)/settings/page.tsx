@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { translator } from "@/lib/i18n";
 import { Toast } from "@/app/(app)/_components/Toast";
 
+import { EmailForm } from "./EmailForm";
 import { SettingsForm } from "./SettingsForm";
 
 export const metadata = {
@@ -12,7 +13,10 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ passwordUpdated?: string }>;
+type SearchParams = Promise<{
+  passwordUpdated?: string;
+  emailUpdated?: string;
+}>;
 
 export default async function SettingsPage({
   searchParams,
@@ -21,12 +25,15 @@ export default async function SettingsPage({
 }) {
   const user = await requireUser();
   const t = translator(user.locale);
-  const { passwordUpdated } = await searchParams;
+  const { passwordUpdated, emailUpdated } = await searchParams;
 
   return (
     <div className="max-w-2xl space-y-6">
       {passwordUpdated ? (
         <Toast variant="success" message={t("toast.passwordUpdated")} />
+      ) : null}
+      {emailUpdated ? (
+        <Toast variant="success" message={t("toast.emailUpdated")} />
       ) : null}
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">
@@ -64,10 +71,6 @@ export default async function SettingsPage({
             <dt className="text-zinc-500">{t("settings.profile.name")}</dt>
             <dd className="font-medium text-zinc-900">{user.name}</dd>
           </div>
-          <div className="flex items-center justify-between py-2">
-            <dt className="text-zinc-500">{t("settings.profile.email")}</dt>
-            <dd className="font-mono text-xs text-zinc-900">{user.email}</dd>
-          </div>
         </dl>
         <div className="mt-4">
           <Link
@@ -77,6 +80,21 @@ export default async function SettingsPage({
             {t("settings.password.link")}
           </Link>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <EmailForm
+          defaultEmail={user.email}
+          labels={{
+            heading: t("settings.email.heading"),
+            subtitle: t("settings.email.subtitle"),
+            currentLabel: t("settings.email.current"),
+            newLabel: t("settings.email.new"),
+            currentPasswordLabel: t("password.current"),
+            save: t("settings.email.save"),
+            saving: t("common.saving"),
+          }}
+        />
       </section>
     </div>
   );

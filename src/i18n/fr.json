@@ -45,6 +45,7 @@
   "toast.passwordUpdated": "Mot de passe mis à jour.",
   "toast.passwordReset": "Mot de passe réinitialisé.",
   "toast.userUpdated": "Utilisateur mis à jour.",
+  "toast.emailUpdated": "E-mail mis à jour.",
 
   "dashboard.title": "Tableau de bord",
   "dashboard.subtitle": "Aperçu de votre flotte et de l'activité récente.",
@@ -139,6 +140,11 @@
   "settings.save": "Enregistrer les paramètres",
   "settings.saved": "Paramètres mis à jour.",
   "settings.password.link": "Changer le mot de passe",
+  "settings.email.heading": "Adresse e-mail",
+  "settings.email.subtitle": "C'est l'adresse que vous utilisez pour vous connecter.",
+  "settings.email.current": "E-mail actuel",
+  "settings.email.new": "Nouvel e-mail",
+  "settings.email.save": "Mettre à jour l'e-mail",
 
   "password.title": "Changer le mot de passe",
   "password.subtitle": "Choisissez un nouveau mot de passe d'au moins 10 caractères.",
@@ -165,7 +171,18 @@
   "admin.action.promote": "Promouvoir administrateur",
   "admin.action.demote": "Rétrograder en utilisateur",
   "admin.action.resetPassword": "Réinitialiser le mot de passe",
+  "admin.action.edit": "Modifier",
   "admin.youLabel": "(vous)",
+
+  "admin.edit.title": "Modifier l'utilisateur",
+  "admin.edit.subtitle": "Changez l'e-mail de cet utilisateur ou définissez un nouveau mot de passe directement.",
+  "admin.edit.emailHeading": "Adresse e-mail",
+  "admin.edit.emailSubtitle": "L'utilisateur se connectera avec le nouvel e-mail à sa prochaine connexion.",
+  "admin.edit.passwordHeading": "Définir le mot de passe",
+  "admin.edit.passwordSubtitle": "Définissez un nouveau mot de passe directement. L'utilisateur ne sera pas contraint de le changer à la prochaine connexion.",
+  "admin.edit.saveEmail": "Mettre à jour l'e-mail",
+  "admin.edit.savePassword": "Mettre à jour le mot de passe",
+  "admin.edit.resetAlternative": "Préférez générer un mot de passe temporaire que l'utilisateur devra changer à la prochaine connexion ?",
 
   "admin.reset.title": "Réinitialiser le mot de passe",
   "admin.reset.subtitle": "Un nouveau mot de passe temporaire sera généré. L'utilisateur devra le changer à la prochaine connexion.",
