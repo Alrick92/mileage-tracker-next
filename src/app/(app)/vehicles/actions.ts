@@ -83,6 +83,7 @@ export async function createVehicleAction(
         model: parsed.data.model,
         year: parsed.data.year,
         licensePlate: parsed.data.licensePlate,
+        initialOdometer: currentOdometerKm,
         currentOdometer: currentOdometerKm,
       },
     });

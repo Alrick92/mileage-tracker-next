@@ -75,10 +75,18 @@ function generateTempPassword(length = 14): string {
   // URL-safe, human-copy-friendly. Avoid ambiguous chars.
   const alphabet =
     "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  const bytes = randomBytes(length);
+  // Rejection sampling: only accept bytes within the largest multiple of
+  // alphabet.length that fits in a byte, so every character is chosen with
+  // exactly uniform probability (no modulo bias).
+  const threshold = 256 - (256 % alphabet.length);
   let out = "";
-  for (let i = 0; i < length; i++) {
-    out += alphabet[bytes[i] % alphabet.length];
+  while (out.length < length) {
+    const chunk = randomBytes((length - out.length) * 2);
+    for (let i = 0; i < chunk.length && out.length < length; i++) {
+      if (chunk[i] < threshold) {
+        out += alphabet[chunk[i] % alphabet.length];
+      }
+    }
   }
   return out;
 }

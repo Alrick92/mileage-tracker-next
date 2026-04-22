@@ -113,11 +113,17 @@ export async function deleteTripAction(formData: FormData): Promise<void> {
 
   const trip = await prisma.trip.findFirst({
     where: { id: tripId, userId: user.id },
-    select: { id: true, vehicleId: true },
+    select: {
+      id: true,
+      vehicleId: true,
+      vehicle: { select: { initialOdometer: true } },
+    },
   });
   if (!trip) {
     redirect("/trips?error=" + encodeURIComponent("Trip not found"));
   }
+
+  const initialOdometer = trip.vehicle.initialOdometer;
 
   await prisma.$transaction(async (tx) => {
     await tx.trip.delete({ where: { id: trip.id } });
@@ -126,9 +132,12 @@ export async function deleteTripAction(formData: FormData): Promise<void> {
       where: { vehicleId: trip.vehicleId },
       _max: { endOdometer: true },
     });
+    // Floor currentOdometer at the vehicle's creation-time reading so that
+    // deleting trips never loses the original calibration.
+    const recomputed = Math.max(max._max.endOdometer ?? 0, initialOdometer);
     await tx.vehicle.update({
       where: { id: trip.vehicleId },
-      data: { currentOdometer: max._max.endOdometer ?? 0 },
+      data: { currentOdometer: recomputed },
     });
   });
 
