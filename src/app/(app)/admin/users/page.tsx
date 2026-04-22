@@ -11,6 +11,7 @@ import { Pagination } from "@/app/(app)/_components/Pagination";
 import { Toast } from "@/app/(app)/_components/Toast";
 
 import {
+  EditUserLink,
   EnabledToggleForm,
   ResetPasswordLink,
   RoleToggleForm,
@@ -142,6 +143,11 @@ export default async function AdminUsersPage({
                             promote: t("admin.action.promote"),
                             demote: t("admin.action.demote"),
                           }}
+                        />
+                        <EditUserLink
+                          userId={u.id}
+                          isSelf={isSelf}
+                          label={t("admin.action.edit")}
                         />
                         <ResetPasswordLink
                           userId={u.id}

@@ -45,6 +45,7 @@
   "toast.passwordUpdated": "Password updated.",
   "toast.passwordReset": "Password reset.",
   "toast.userUpdated": "User updated.",
+  "toast.emailUpdated": "Email updated.",
 
   "dashboard.title": "Dashboard",
   "dashboard.subtitle": "Overview of your fleet and recent activity.",
@@ -139,6 +140,11 @@
   "settings.save": "Save settings",
   "settings.saved": "Settings updated.",
   "settings.password.link": "Change password",
+  "settings.email.heading": "Email address",
+  "settings.email.subtitle": "This is the email you use to sign in.",
+  "settings.email.current": "Current email",
+  "settings.email.new": "New email",
+  "settings.email.save": "Update email",
 
   "password.title": "Change password",
   "password.subtitle": "Pick a new password of at least 10 characters.",
@@ -165,7 +171,18 @@
   "admin.action.promote": "Promote to admin",
   "admin.action.demote": "Demote to user",
   "admin.action.resetPassword": "Reset password",
+  "admin.action.edit": "Edit",
   "admin.youLabel": "(you)",
+
+  "admin.edit.title": "Edit user",
+  "admin.edit.subtitle": "Change this user's email or set a new password directly.",
+  "admin.edit.emailHeading": "Email address",
+  "admin.edit.emailSubtitle": "The user will sign in with the new email on their next login.",
+  "admin.edit.passwordHeading": "Set password",
+  "admin.edit.passwordSubtitle": "Set a new password directly. The user will not be forced to change it on next sign-in.",
+  "admin.edit.saveEmail": "Update email",
+  "admin.edit.savePassword": "Update password",
+  "admin.edit.resetAlternative": "Prefer to generate a temporary password the user must rotate on next sign-in?",
 
   "admin.reset.title": "Reset password",
   "admin.reset.subtitle": "A new temporary password will be generated. The user must change it at next sign-in.",
