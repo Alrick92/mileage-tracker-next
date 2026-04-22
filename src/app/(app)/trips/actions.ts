@@ -7,6 +7,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { parseOdometerToKm, type Unit } from "@/lib/units";
+import { writeAuditLog } from "@/lib/audit";
 
 const TripSchema = z
   .object({
@@ -69,7 +70,7 @@ export async function createTripAction(
       id: parsed.data.vehicleId,
       assignments: { some: { userId: user.id } },
     },
-    select: { id: true, currentOdometer: true },
+    select: { id: true, name: true, licensePlate: true, currentOdometer: true },
   });
   if (!vehicle) {
     return { error: "Vehicle not found." };
@@ -82,7 +83,7 @@ export async function createTripAction(
   const endOdometerKm = parseOdometerToKm(parsed.data.endOdometer, unit);
 
   await prisma.$transaction(async (tx) => {
-    await tx.trip.create({
+    const trip = await tx.trip.create({
       data: {
         vehicleId: parsed.data.vehicleId,
         userId: user.id,
@@ -92,6 +93,7 @@ export async function createTripAction(
         endOdometer: endOdometerKm,
         notes: parsed.data.notes,
       },
+      select: { id: true, date: true },
     });
 
     if (endOdometerKm > vehicle.currentOdometer) {
@@ -100,6 +102,28 @@ export async function createTripAction(
         data: { currentOdometer: endOdometerKm },
       });
     }
+
+    await writeAuditLog(
+      {
+        actorId: user.id,
+        actorEmail: user.email,
+        actorName: user.name,
+        action: "TRIP_CREATED",
+        entityType: "Trip",
+        entityId: trip.id,
+        summary: `${trip.date.toISOString().slice(0, 10)} · ${
+          vehicle.licensePlate
+            ? `${vehicle.name} (${vehicle.licensePlate})`
+            : vehicle.name
+        } · ${startOdometerKm}→${endOdometerKm} km`,
+        details: {
+          vehicleId: vehicle.id,
+          startOdometerKm,
+          endOdometerKm,
+        },
+      },
+      tx,
+    );
   });
 
   revalidatePath("/dashboard");
@@ -145,7 +169,12 @@ export async function updateTripAction(
       id: parsed.data.vehicleId,
       assignments: { some: { userId: user.id } },
     },
-    select: { id: true, initialOdometer: true },
+    select: {
+      id: true,
+      name: true,
+      licensePlate: true,
+      initialOdometer: true,
+    },
   });
   if (!vehicle) {
     return { error: "Vehicle not found." };
@@ -162,7 +191,7 @@ export async function updateTripAction(
   const affectedVehicleIds = new Set<string>([vehicle.id, existing.vehicleId]);
 
   await prisma.$transaction(async (tx) => {
-    await tx.trip.update({
+    const updated = await tx.trip.update({
       where: { id: existing.id },
       data: {
         vehicleId: vehicle.id,
@@ -172,7 +201,30 @@ export async function updateTripAction(
         endOdometer: endOdometerKm,
         notes: parsed.data.notes,
       },
+      select: { id: true, date: true },
     });
+    await writeAuditLog(
+      {
+        actorId: user.id,
+        actorEmail: user.email,
+        actorName: user.name,
+        action: "TRIP_UPDATED",
+        entityType: "Trip",
+        entityId: updated.id,
+        summary: `${updated.date.toISOString().slice(0, 10)} · ${
+          vehicle.licensePlate
+            ? `${vehicle.name} (${vehicle.licensePlate})`
+            : vehicle.name
+        } · ${startOdometerKm}→${endOdometerKm} km`,
+        details: {
+          vehicleId: vehicle.id,
+          previousVehicleId: existing.vehicleId,
+          startOdometerKm,
+          endOdometerKm,
+        },
+      },
+      tx,
+    );
 
     for (const vid of affectedVehicleIds) {
       const [veh, agg] = await Promise.all([

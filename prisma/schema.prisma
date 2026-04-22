@@ -22,6 +22,14 @@ enum Locale {
   FR
 }
 
+enum AuditAction {
+  USER_CREATED
+  VEHICLE_CREATED
+  VEHICLE_UPDATED
+  TRIP_CREATED
+  TRIP_UPDATED
+}
+
 model User {
   id                  String   @id @default(cuid())
   email               String   @unique
@@ -37,6 +45,7 @@ model User {
 
   trips              Trip[]
   vehicleAssignments VehicleAssignment[]
+  auditLogs          AuditLog[] @relation("AuditActor")
 }
 
 model Vehicle {
@@ -86,4 +95,22 @@ model Trip {
 
   @@index([vehicleId, date])
   @@index([userId, date])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  createdAt  DateTime    @default(now())
+  actorId    String?
+  actorEmail String?
+  actorName  String?
+  action     AuditAction
+  entityType String
+  entityId   String
+  summary    String
+  details    Json?
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action, createdAt])
 }

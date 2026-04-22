@@ -7,6 +7,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { parseOdometerToKm, type Unit } from "@/lib/units";
+import { writeAuditLog } from "@/lib/audit";
 
 const VehicleSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
@@ -89,6 +90,23 @@ export async function createVehicleAction(
     await tx.vehicleAssignment.create({
       data: { vehicleId: vehicle.id, userId: user.id },
     });
+    await writeAuditLog(
+      {
+        actorId: user.id,
+        actorEmail: user.email,
+        actorName: user.name,
+        action: "VEHICLE_CREATED",
+        entityType: "Vehicle",
+        entityId: vehicle.id,
+        summary: vehicle.licensePlate
+          ? `${vehicle.name} (${vehicle.licensePlate})`
+          : vehicle.name,
+        details: {
+          initialOdometerKm: currentOdometerKm,
+        },
+      },
+      tx,
+    );
   });
 
   revalidatePath("/dashboard");

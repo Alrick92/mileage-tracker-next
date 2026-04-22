@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { parseCsv } from "@/lib/csv";
 import { parseOdometerToKm, type Unit } from "@/lib/units";
+import { writeAuditLog } from "@/lib/audit";
 
 export type ImportRowError = { row: number; message: string };
 
@@ -60,7 +61,12 @@ export async function importTripsAction(
       id: vehicleId,
       assignments: { some: { userId: user.id } },
     },
-    select: { id: true, currentOdometer: true },
+    select: {
+      id: true,
+      name: true,
+      licensePlate: true,
+      currentOdometer: true,
+    },
   });
   if (!vehicle) {
     return { error: "Selected vehicle was not found in your fleet." };
@@ -186,18 +192,47 @@ export async function importTripsAction(
     if (row.endOdometerKm > maxEnd) maxEnd = row.endOdometerKm;
   }
 
+  const vehicleLabel = vehicle.licensePlate
+    ? `${vehicle.name} (${vehicle.licensePlate})`
+    : vehicle.name;
+
   await prisma.$transaction(async (tx) => {
-    await tx.trip.createMany({
-      data: valid.map((row) => ({
-        vehicleId: vehicle.id,
-        userId: user.id,
-        driverName,
-        date: row.date,
-        startOdometer: row.startOdometerKm,
-        endOdometer: row.endOdometerKm,
-        notes: row.notes,
-      })),
-    });
+    // Individual creates (vs `createMany`) so each row gets an auditable id.
+    // CSV size is capped at 5 MB so the per-row loop is bounded.
+    for (const row of valid) {
+      const trip = await tx.trip.create({
+        data: {
+          vehicleId: vehicle.id,
+          userId: user.id,
+          driverName,
+          date: row.date,
+          startOdometer: row.startOdometerKm,
+          endOdometer: row.endOdometerKm,
+          notes: row.notes,
+        },
+        select: { id: true, date: true },
+      });
+      await writeAuditLog(
+        {
+          actorId: user.id,
+          // Pre-resolved so the helper skips a redundant user.findUnique
+          // on every imported row inside this transaction.
+          actorEmail: user.email,
+          actorName: user.name,
+          action: "TRIP_CREATED",
+          entityType: "Trip",
+          entityId: trip.id,
+          summary: `${trip.date.toISOString().slice(0, 10)} · ${vehicleLabel} · ${row.startOdometerKm}→${row.endOdometerKm} km`,
+          details: {
+            vehicleId: vehicle.id,
+            startOdometerKm: row.startOdometerKm,
+            endOdometerKm: row.endOdometerKm,
+            source: "csvImport",
+          },
+        },
+        tx,
+      );
+    }
 
     if (maxEnd > vehicle.currentOdometer) {
       await tx.vehicle.update({

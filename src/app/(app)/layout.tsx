@@ -23,6 +23,7 @@ export default async function AppLayout({
           settings: t("nav.settings"),
           admin: t("nav.admin"),
           fleet: t("nav.fleet"),
+          audit: t("nav.audit"),
         }}
         isAdmin={user.role === "ADMIN"}
       />
