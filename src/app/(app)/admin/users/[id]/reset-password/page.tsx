@@ -29,23 +29,15 @@ export default async function ResetPasswordPage({
   });
   if (!target) notFound();
 
-  // One-shot read: consume the short-lived cookie set by resetPasswordAction.
-  // Clearing it immediately prevents the plaintext from surviving a page
-  // refresh or the browser Back button.
+  // Read the short-lived cookie set by resetPasswordAction. The cookie has
+  // a 60s TTL, httpOnly, sameSite=lax, and is path-scoped to this page; the
+  // plaintext never appears in the URL, browser history, referer header, or
+  // server logs. Next.js does not allow `cookies().set()` in a Server
+  // Component, so expiry is left to the TTL rather than being cleared on
+  // first read.
   const cookieStore = await cookies();
   const cookieName = `mt_temp_pw_${id}`;
   const temp = cookieStore.get(cookieName)?.value;
-  if (temp) {
-    cookieStore.set({
-      name: cookieName,
-      value: "",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: `/admin/users/${id}/reset-password`,
-      maxAge: 0,
-    });
-  }
 
   return (
     <div className="mx-auto max-w-xl space-y-6">

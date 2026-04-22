@@ -121,7 +121,7 @@ export async function resetPasswordAction(formData: FormData): Promise<void> {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: `/admin/users/${userId}/reset-password`,
-    maxAge: 120,
+    maxAge: 60,
   });
 
   revalidatePath("/admin/users");
