@@ -4,13 +4,15 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { translator } from "@/lib/i18n";
-import { formatOdometer, unitShort } from "@/lib/units";
+import { formatOdometer, kmToUnit, unitShort } from "@/lib/units";
 
-import { TripForm } from "../TripForm";
+import { TripForm, type TripFormVehicle } from "../TripForm";
 
 export const metadata = {
   title: "Log trip · Mileage Tracker",
 };
+
+export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ vehicleId?: string }>;
 
@@ -25,12 +27,18 @@ export default async function NewTripPage({
   const { vehicleId } = await searchParams;
 
   const vehiclesRaw = await prisma.vehicle.findMany({
+    where: { userId: user.id },
     orderBy: { name: "asc" },
     select: {
       id: true,
       name: true,
       licensePlate: true,
       currentOdometer: true,
+      trips: {
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        take: 1,
+        select: { endOdometer: true },
+      },
     },
   });
 
@@ -38,16 +46,20 @@ export default async function NewTripPage({
     redirect("/vehicles/new");
   }
 
-  const vehicles = vehiclesRaw.map((v) => ({
-    id: v.id,
-    name: v.name,
-    licensePlate: v.licensePlate,
-    currentOdometerDisplay: formatOdometer(
-      v.currentOdometer,
-      user.unit,
-      user.locale,
-    ),
-  }));
+  const vehicles: TripFormVehicle[] = vehiclesRaw.map((v) => {
+    const lastEndKm = v.trips[0]?.endOdometer ?? v.currentOdometer;
+    return {
+      id: v.id,
+      name: v.name,
+      licensePlate: v.licensePlate,
+      currentOdometerDisplay: formatOdometer(
+        v.currentOdometer,
+        user.unit,
+        user.locale,
+      ),
+      defaultStartOdometer: Math.round(kmToUnit(lastEndKm, user.unit)),
+    };
+  });
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -63,7 +75,7 @@ export default async function NewTripPage({
         </h1>
         <p className="mt-1 text-sm text-zinc-500">{t("trips.new.subtitle")}</p>
       </div>
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
         <TripForm
           vehicles={vehicles}
           defaultVehicleId={vehicleId}
@@ -76,7 +88,9 @@ export default async function NewTripPage({
             driver: t("trips.form.driver"),
             startOdometer: t("trips.form.startOdometer", { unit }),
             endOdometer: t("trips.form.endOdometer", { unit }),
-            fuel: t("trips.form.fuel"),
+            startPrefillHelp: t("trips.form.startPrefillHelp"),
+            distance: t("trips.form.distance"),
+            distanceUnit: unit,
             notes: t("trips.form.notes"),
             save: t("trips.form.save"),
             saving: t("common.saving"),

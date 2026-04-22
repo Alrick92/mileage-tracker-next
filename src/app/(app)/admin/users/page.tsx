@@ -1,8 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { translator } from "@/lib/i18n";
+import { Toast } from "@/app/(app)/_components/Toast";
 
-import { EnabledToggleForm, RoleToggleForm } from "./UserRowForms";
+import {
+  EnabledToggleForm,
+  ResetPasswordLink,
+  RoleToggleForm,
+} from "./UserRowForms";
 
 export const metadata = {
   title: "User administration · Mileage Tracker",
@@ -10,9 +15,16 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminUsersPage() {
+type SearchParams = Promise<{ error?: string }>;
+
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const admin = await requireAdmin();
   const t = translator(admin.locale);
+  const { error } = await searchParams;
 
   const users = await prisma.user.findMany({
     orderBy: [{ createdAt: "asc" }],
@@ -22,12 +34,16 @@ export default async function AdminUsersPage() {
       name: true,
       role: true,
       enabled: true,
+      mustChangePassword: true,
       createdAt: true,
     },
   });
 
   return (
     <div className="space-y-6">
+      {error ? (
+        <Toast variant="error" message={error} />
+      ) : null}
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">
           {t("admin.title")}
@@ -35,8 +51,8 @@ export default async function AdminUsersPage() {
         <p className="mt-1 text-sm text-zinc-500">{t("admin.subtitle")}</p>
       </header>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
             <tr>
               <th className="px-4 py-3 font-medium">{t("admin.col.user")}</th>
@@ -92,7 +108,7 @@ export default async function AdminUsersPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="inline-flex items-center gap-2">
+                    <div className="inline-flex flex-wrap items-center justify-end gap-2">
                       <EnabledToggleForm
                         userId={u.id}
                         enabled={u.enabled}
@@ -110,6 +126,11 @@ export default async function AdminUsersPage() {
                           promote: t("admin.action.promote"),
                           demote: t("admin.action.demote"),
                         }}
+                      />
+                      <ResetPasswordLink
+                        userId={u.id}
+                        isSelf={isSelf}
+                        label={t("admin.action.resetPassword")}
                       />
                     </div>
                   </td>

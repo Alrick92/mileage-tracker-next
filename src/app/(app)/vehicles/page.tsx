@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { translator } from "@/lib/i18n";
 import { formatOdometer } from "@/lib/units";
+import { Toast } from "@/app/(app)/_components/Toast";
 
 export const metadata = {
   title: "Vehicles · Mileage Tracker",
@@ -11,18 +12,35 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function VehiclesPage() {
+type SearchParams = Promise<{ saved?: string; deleted?: string; error?: string }>;
+
+export default async function VehiclesPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const user = await requireUser();
   const t = translator(user.locale);
+  const params = await searchParams;
 
   const vehicles = await prisma.vehicle.findMany({
+    where: { userId: user.id },
     orderBy: { name: "asc" },
     include: { _count: { select: { trips: true } } },
   });
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-4">
+      {params.saved ? (
+        <Toast variant="success" message={t("toast.vehicleSaved")} />
+      ) : null}
+      {params.deleted ? (
+        <Toast variant="success" message={t("toast.vehicleDeleted")} />
+      ) : null}
+      {params.error ? (
+        <Toast variant="error" message={params.error} />
+      ) : null}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
             {t("vehicles.title")}
@@ -33,7 +51,7 @@ export default async function VehiclesPage() {
         </div>
         <Link
           href="/vehicles/new"
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+          className="inline-flex w-fit items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
         >
           {t("dashboard.addVehicle")}
         </Link>

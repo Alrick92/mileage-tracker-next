@@ -1,12 +1,13 @@
 {
   "app.title": "Suivi kilométrique",
-  "app.version": "v0.2.0",
+  "app.version": "v0.3.0",
 
   "nav.dashboard": "Tableau de bord",
   "nav.vehicles": "Véhicules",
   "nav.trips": "Trajets",
   "nav.settings": "Paramètres",
-  "nav.admin": "Administration",
+  "nav.admin": "Utilisateurs",
+  "nav.fleet": "Flotte",
 
   "topbar.signedInAs": "Connecté en tant que",
   "topbar.signOut": "Se déconnecter",
@@ -17,6 +18,7 @@
   "common.cancel": "Annuler",
   "common.edit": "Modifier",
   "common.view": "Voir",
+  "common.delete": "Supprimer",
   "common.required": "requis",
   "common.distance": "Distance",
   "common.unit": "Unité",
@@ -27,6 +29,17 @@
   "common.miles": "Milles",
   "common.yes": "Oui",
   "common.no": "Non",
+
+  "unit.km.short": "km",
+  "unit.mi.short": "mi",
+
+  "toast.vehicleSaved": "Véhicule enregistré.",
+  "toast.vehicleDeleted": "Véhicule supprimé.",
+  "toast.tripSaved": "Trajet enregistré.",
+  "toast.tripDeleted": "Trajet supprimé.",
+  "toast.passwordUpdated": "Mot de passe mis à jour.",
+  "toast.passwordReset": "Mot de passe réinitialisé.",
+  "toast.userUpdated": "Utilisateur mis à jour.",
 
   "dashboard.title": "Tableau de bord",
   "dashboard.subtitle": "Aperçu de votre flotte et de l'activité récente.",
@@ -57,6 +70,10 @@
   "vehicles.form.currentOdometer": "Odomètre actuel ({unit})",
   "vehicles.form.save": "Enregistrer le véhicule",
 
+  "vehicle.delete.title": "Supprimer ce véhicule ?",
+  "vehicle.delete.subtitle": "Cette action est irréversible.",
+  "vehicle.delete.blocked": "Ce véhicule a encore {count} trajet(s). Supprimez d'abord les trajets.",
+
   "trips.title": "Trajets",
   "trips.subtitle": "Tous les trajets enregistrés de votre flotte.",
   "trips.exportCsv": "Exporter CSV",
@@ -72,7 +89,6 @@
   "trips.col.start": "Début",
   "trips.col.end": "Fin",
   "trips.col.distance": "Distance",
-  "trips.col.fuel": "Carburant",
   "trips.new.title": "Enregistrer un trajet",
   "trips.new.subtitle": "Enregistrez un trajet et mettez à jour l'odomètre du véhicule.",
   "trips.new.needVehicle": "Ajoutez un véhicule avant d'enregistrer un trajet.",
@@ -84,9 +100,13 @@
   "trips.form.driver": "Conducteur",
   "trips.form.startOdometer": "Odomètre de départ ({unit})",
   "trips.form.endOdometer": "Odomètre d'arrivée ({unit})",
-  "trips.form.fuel": "Carburant utilisé (L)",
+  "trips.form.startPrefillHelp": "Pré-rempli avec le dernier relevé de ce véhicule. Modifiable.",
+  "trips.form.distance": "Distance",
   "trips.form.notes": "Notes",
   "trips.form.save": "Enregistrer le trajet",
+
+  "trip.delete.title": "Supprimer ce trajet ?",
+  "trip.delete.subtitle": "Cette action est irréversible.",
 
   "settings.title": "Paramètres",
   "settings.subtitle": "Choisissez l'affichage des distances et de l'interface.",
@@ -99,9 +119,22 @@
   "settings.profile.email": "E-mail",
   "settings.save": "Enregistrer les paramètres",
   "settings.saved": "Paramètres mis à jour.",
+  "settings.password.link": "Changer le mot de passe",
+
+  "password.title": "Changer le mot de passe",
+  "password.subtitle": "Choisissez un nouveau mot de passe d'au moins 10 caractères.",
+  "password.forced.title": "Changement de mot de passe requis",
+  "password.forced.subtitle": "Un administrateur a réinitialisé votre mot de passe. Veuillez en définir un nouveau pour continuer.",
+  "password.current": "Mot de passe actuel",
+  "password.new": "Nouveau mot de passe",
+  "password.confirm": "Confirmer le nouveau mot de passe",
+  "password.save": "Mettre à jour",
+  "password.error.mismatch": "Les mots de passe ne correspondent pas.",
+  "password.error.tooShort": "Le mot de passe doit comporter au moins 10 caractères.",
+  "password.error.current": "Le mot de passe actuel est incorrect.",
 
   "admin.title": "Administration des utilisateurs",
-  "admin.subtitle": "Activez ou désactivez des utilisateurs et gérez les rôles d'administrateur.",
+  "admin.subtitle": "Activez/désactivez des utilisateurs, gérez les rôles et réinitialisez les mots de passe.",
   "admin.col.user": "Utilisateur",
   "admin.col.role": "Rôle",
   "admin.col.enabled": "Activé",
@@ -112,14 +145,31 @@
   "admin.action.disable": "Désactiver",
   "admin.action.promote": "Promouvoir administrateur",
   "admin.action.demote": "Rétrograder en utilisateur",
+  "admin.action.resetPassword": "Réinitialiser le mot de passe",
   "admin.youLabel": "(vous)",
 
+  "admin.reset.title": "Réinitialiser le mot de passe",
+  "admin.reset.subtitle": "Un nouveau mot de passe temporaire sera généré. L'utilisateur devra le changer à la prochaine connexion.",
+  "admin.reset.user": "Utilisateur",
+  "admin.reset.confirm": "Générer un nouveau mot de passe",
+  "admin.reset.generated.title": "Mot de passe temporaire généré",
+  "admin.reset.generated.body": "Communiquez-le à l'utilisateur par un canal sécurisé. Il ne sera plus affiché.",
+  "admin.reset.back": "Retour aux utilisateurs",
+
+  "admin.fleet.title": "Flotte",
+  "admin.fleet.subtitle": "Vue globale des véhicules et trajets de tous les utilisateurs.",
+  "admin.fleet.vehicles": "Véhicules",
+  "admin.fleet.trips": "Trajets",
+  "admin.fleet.distance": "Distance",
+  "admin.fleet.owner": "Propriétaire",
+  "admin.fleet.exportAll": "Exporter tous les trajets (CSV)",
+
   "pending.title": "Compte en attente d'approbation",
-  "pending.body": "Merci pour votre inscription. Un administrateur doit activer votre compte avant que vous puissiez vous connecter. Revenez plus tard ou contactez votre administrateur.",
+  "pending.body": "Merci de vous être inscrit. Un administrateur doit activer votre compte avant que vous puissiez vous connecter. Veuillez réessayer plus tard ou contacter votre administrateur.",
   "pending.backToLogin": "Retour à la connexion",
 
   "login.title": "Connexion",
-  "login.subtitle": "Accédez au tableau de bord de votre flotte.",
+  "login.subtitle": "Accédez à votre tableau de bord.",
   "login.email": "E-mail",
   "login.password": "Mot de passe",
   "login.submit": "Se connecter",
@@ -129,14 +179,12 @@
   "login.error.disabled": "Votre compte est en attente d'approbation. Contactez votre administrateur.",
 
   "register.title": "Créer un compte",
-  "register.subtitle": "Inscrivez-vous au suivi kilométrique.",
+  "register.subtitle": "Créez un compte. Un administrateur devra l'activer avant que vous puissiez vous connecter.",
   "register.name": "Nom",
   "register.email": "E-mail",
   "register.password": "Mot de passe",
-  "register.submit": "Créer le compte",
+  "register.submit": "S'inscrire",
   "register.submitting": "Création…",
-  "register.signin": "Déjà un compte ? Se connecter",
-
-  "unit.km.short": "km",
-  "unit.mi.short": "mi"
+  "register.login": "Déjà un compte ? Se connecter",
+  "register.error.exists": "Un compte avec cet e-mail existe déjà."
 }

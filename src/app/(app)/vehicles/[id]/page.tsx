@@ -16,8 +16,6 @@ export const dynamic = "force-dynamic";
 type Params = Promise<{ id: string }>;
 
 function formatDate(d: Date, localeStr: string): string {
-  // Keep ISO YYYY-MM-DD for table cells (locale-neutral); only the header
-  // copy is translated.
   void localeStr;
   return d.toISOString().slice(0, 10);
 }
@@ -31,8 +29,8 @@ export default async function VehicleDetailPage({
   const t = translator(user.locale);
   const { id } = await params;
 
-  const vehicle = await prisma.vehicle.findUnique({
-    where: { id },
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id, userId: user.id },
     include: {
       trips: {
         orderBy: [{ date: "desc" }, { createdAt: "desc" }],
@@ -59,7 +57,7 @@ export default async function VehicleDetailPage({
         >
           ← {t("vehicles.title")}
         </Link>
-        <div className="mt-2 flex items-start justify-between gap-4">
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
               {vehicle.name}
@@ -75,7 +73,13 @@ export default async function VehicleDetailPage({
               ) : null}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/vehicles/${vehicle.id}/delete`}
+              className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+            >
+              {t("common.delete")}
+            </Link>
             <a
               href={`/api/trips/export?vehicleId=${vehicle.id}`}
               className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
@@ -117,8 +121,8 @@ export default async function VehicleDetailPage({
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
               <tr>
                 <th className="px-4 py-3 font-medium">{t("trips.col.date")}</th>
@@ -134,9 +138,7 @@ export default async function VehicleDetailPage({
                 <th className="px-4 py-3 text-right font-medium">
                   {t("trips.col.distance")} ({unitShort(unit, locale)})
                 </th>
-                <th className="px-4 py-3 text-right font-medium">
-                  {t("trips.col.fuel")}
-                </th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -159,8 +161,13 @@ export default async function VehicleDetailPage({
                       locale,
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono text-zinc-700">
-                    {trip.fuelLiters !== null ? `${trip.fuelLiters} L` : "—"}
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/trips/${trip.id}/delete`}
+                      className="text-xs font-medium text-red-600 underline-offset-4 hover:underline"
+                    >
+                      {t("common.delete")}
+                    </Link>
                   </td>
                 </tr>
               ))}

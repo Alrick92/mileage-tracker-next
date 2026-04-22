@@ -1,5 +1,8 @@
+import Link from "next/link";
+
 import { requireUser } from "@/lib/auth";
 import { translator } from "@/lib/i18n";
+import { Toast } from "@/app/(app)/_components/Toast";
 
 import { SettingsForm } from "./SettingsForm";
 
@@ -9,12 +12,22 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+type SearchParams = Promise<{ passwordUpdated?: string }>;
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const user = await requireUser();
   const t = translator(user.locale);
+  const { passwordUpdated } = await searchParams;
 
   return (
     <div className="max-w-2xl space-y-6">
+      {passwordUpdated ? (
+        <Toast variant="success" message={t("toast.passwordUpdated")} />
+      ) : null}
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">
           {t("settings.title")}
@@ -56,6 +69,14 @@ export default async function SettingsPage() {
             <dd className="font-mono text-xs text-zinc-900">{user.email}</dd>
           </div>
         </dl>
+        <div className="mt-4">
+          <Link
+            href="/settings/password"
+            className="inline-flex items-center rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          >
+            {t("settings.password.link")}
+          </Link>
+        </div>
       </section>
     </div>
   );

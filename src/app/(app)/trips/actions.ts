@@ -32,14 +32,6 @@ const TripSchema = z
         (v) => Number.isFinite(v) && v >= 0,
         "End odometer must be a non-negative number",
       ),
-    fuelLiters: z
-      .string()
-      .optional()
-      .transform((v) => (v && v.length > 0 ? Number(v) : null))
-      .refine(
-        (v) => v === null || (Number.isFinite(v) && v >= 0),
-        "Fuel must be a non-negative number",
-      ),
     notes: z
       .string()
       .trim()
@@ -66,15 +58,14 @@ export async function createTripAction(
     date: formData.get("date"),
     startOdometer: formData.get("startOdometer"),
     endOdometer: formData.get("endOdometer"),
-    fuelLiters: formData.get("fuelLiters") ?? undefined,
     notes: formData.get("notes") ?? undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
-  const vehicle = await prisma.vehicle.findUnique({
-    where: { id: parsed.data.vehicleId },
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: parsed.data.vehicleId, userId: user.id },
     select: { id: true, currentOdometer: true },
   });
   if (!vehicle) {
@@ -96,7 +87,6 @@ export async function createTripAction(
         date: new Date(parsed.data.date),
         startOdometer: startOdometerKm,
         endOdometer: endOdometerKm,
-        fuelLiters: parsed.data.fuelLiters,
         notes: parsed.data.notes,
       },
     });
@@ -113,5 +103,47 @@ export async function createTripAction(
   revalidatePath("/vehicles");
   revalidatePath(`/vehicles/${parsed.data.vehicleId}`);
   revalidatePath("/trips");
-  redirect("/trips");
+  redirect("/trips?saved=1");
+}
+
+export async function deleteTripAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const tripId = String(formData.get("tripId") ?? "");
+  if (!tripId) redirect("/trips?error=" + encodeURIComponent("Missing trip id"));
+
+  const trip = await prisma.trip.findFirst({
+    where: { id: tripId, userId: user.id },
+    select: {
+      id: true,
+      vehicleId: true,
+      vehicle: { select: { initialOdometer: true } },
+    },
+  });
+  if (!trip) {
+    redirect("/trips?error=" + encodeURIComponent("Trip not found"));
+  }
+
+  const initialOdometer = trip.vehicle.initialOdometer;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.trip.delete({ where: { id: trip.id } });
+
+    const max = await tx.trip.aggregate({
+      where: { vehicleId: trip.vehicleId },
+      _max: { endOdometer: true },
+    });
+    // Floor currentOdometer at the vehicle's creation-time reading so that
+    // deleting trips never loses the original calibration.
+    const recomputed = Math.max(max._max.endOdometer ?? 0, initialOdometer);
+    await tx.vehicle.update({
+      where: { id: trip.vehicleId },
+      data: { currentOdometer: recomputed },
+    });
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/trips");
+  revalidatePath("/vehicles");
+  revalidatePath(`/vehicles/${trip.vehicleId}`);
+  redirect("/trips?deleted=1");
 }

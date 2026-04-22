@@ -17,15 +17,17 @@ export default async function DashboardPage() {
 
   const [vehicles, tripCount, totalDistance] = await Promise.all([
     prisma.vehicle.findMany({
+      where: { userId: user.id },
       orderBy: { updatedAt: "desc" },
       include: {
         _count: { select: { trips: true } },
       },
     }),
-    prisma.trip.count(),
+    prisma.trip.count({ where: { userId: user.id } }),
     prisma.$queryRaw<{ sum: bigint | null }[]>`
       SELECT COALESCE(SUM("endOdometer" - "startOdometer"), 0)::bigint AS sum
       FROM "Trip"
+      WHERE "userId" = ${user.id}
     `,
   ]);
 

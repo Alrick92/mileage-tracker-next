@@ -74,18 +74,63 @@ export async function createVehicleAction(
     user.unit as Unit,
   );
 
-  await prisma.vehicle.create({
-    data: {
-      name: parsed.data.name,
-      make: parsed.data.make,
-      model: parsed.data.model,
-      year: parsed.data.year,
-      licensePlate: parsed.data.licensePlate,
-      currentOdometer: currentOdometerKm,
-    },
-  });
+  try {
+    await prisma.vehicle.create({
+      data: {
+        userId: user.id,
+        name: parsed.data.name,
+        make: parsed.data.make,
+        model: parsed.data.model,
+        year: parsed.data.year,
+        licensePlate: parsed.data.licensePlate,
+        initialOdometer: currentOdometerKm,
+        currentOdometer: currentOdometerKm,
+      },
+    });
+  } catch (err: unknown) {
+    // Prisma unique violation on (userId, licensePlate) when plate reused
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code: string }).code === "P2002"
+    ) {
+      return { error: "You already have a vehicle with that license plate." };
+    }
+    throw err;
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/vehicles");
-  redirect("/vehicles");
+  redirect("/vehicles?saved=1");
+}
+
+export async function deleteVehicleAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const vehicleId = String(formData.get("vehicleId") ?? "");
+  if (!vehicleId) {
+    redirect("/vehicles?error=" + encodeURIComponent("Missing vehicle id"));
+  }
+
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id: vehicleId, userId: user.id },
+    select: { id: true, _count: { select: { trips: true } } },
+  });
+  if (!vehicle) {
+    redirect("/vehicles?error=" + encodeURIComponent("Vehicle not found"));
+  }
+  if (vehicle._count.trips > 0) {
+    redirect(
+      `/vehicles/${vehicleId}/delete?error=` +
+        encodeURIComponent(
+          `Cannot delete: vehicle still has ${vehicle._count.trips} trip(s). Delete them first.`,
+        ),
+    );
+  }
+
+  await prisma.vehicle.delete({ where: { id: vehicle.id } });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/vehicles");
+  redirect("/vehicles?deleted=1");
 }
