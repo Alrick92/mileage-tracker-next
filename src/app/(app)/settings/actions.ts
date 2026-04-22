@@ -5,12 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
-import {
-  createSession,
-  getCurrentUser,
-  requireUser,
-  verifyPassword,
-} from "@/lib/auth";
+import { createSession, requireUser, verifyPassword } from "@/lib/auth";
 
 const PreferencesSchema = z.object({
   unit: z.enum(["KM", "MI"]),
@@ -60,9 +55,7 @@ export async function updateEmailAction(
   _prev: UpdateEmailState,
   formData: FormData,
 ): Promise<UpdateEmailState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (!user.enabled) redirect("/pending");
+  const user = await requireUser();
 
   const parsed = EmailSchema.safeParse({
     email: formData.get("email"),

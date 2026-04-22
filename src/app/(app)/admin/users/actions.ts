@@ -107,13 +107,17 @@ export async function adminUpdateEmailAction(
   _prev: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = AdminEmailSchema.safeParse({
     userId: formData.get("userId"),
     email: formData.get("email"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  if (parsed.data.userId === admin.id) {
+    return { error: "Use Settings to change your own email." };
   }
 
   const target = await prisma.user.findUnique({
@@ -148,7 +152,7 @@ export async function adminSetPasswordAction(
   _prev: AdminActionState,
   formData: FormData,
 ): Promise<AdminActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = AdminPasswordSchema.safeParse({
     userId: formData.get("userId"),
     newPassword: formData.get("newPassword"),
@@ -156,6 +160,10 @@ export async function adminSetPasswordAction(
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+
+  if (parsed.data.userId === admin.id) {
+    return { error: "Use Settings to change your own password." };
   }
 
   const target = await prisma.user.findUnique({
