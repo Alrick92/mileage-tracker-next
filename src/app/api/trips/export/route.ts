@@ -3,16 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { toCsv } from "@/lib/csv";
+import { translator } from "@/lib/i18n";
+import { kmToUnit, unitShort } from "@/lib/units";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser();
-  if (!user) {
+  if (!user || !user.enabled) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const vehicleId = req.nextUrl.searchParams.get("vehicleId") ?? undefined;
+  const t = translator(user.locale);
+  const unit = user.unit;
+  const unitLabel = unitShort(unit, user.locale);
 
   const trips = await prisma.trip.findMany({
     where: vehicleId ? { vehicleId } : undefined,
@@ -24,28 +29,31 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  const rows = trips.map((t) => ({
-    date: t.date.toISOString().slice(0, 10),
-    vehicle: t.vehicle.name,
-    licensePlate: t.vehicle.licensePlate ?? "",
-    driver: t.driverName,
-    startOdometer: t.startOdometer,
-    endOdometer: t.endOdometer,
-    distanceKm: t.endOdometer - t.startOdometer,
-    fuelLiters: t.fuelLiters ?? "",
-    notes: t.notes ?? "",
-  }));
+  const rows = trips.map((trip) => {
+    const distanceKm = trip.endOdometer - trip.startOdometer;
+    return {
+      date: trip.date.toISOString().slice(0, 10),
+      vehicle: trip.vehicle.name,
+      licensePlate: trip.vehicle.licensePlate ?? "",
+      driver: trip.driverName,
+      startOdometer: Math.round(kmToUnit(trip.startOdometer, unit)),
+      endOdometer: Math.round(kmToUnit(trip.endOdometer, unit)),
+      distance: Math.round(kmToUnit(distanceKm, unit)),
+      fuelLiters: trip.fuelLiters ?? "",
+      notes: trip.notes ?? "",
+    };
+  });
 
   const csv = toCsv(rows, [
-    { key: "date", header: "Date" },
-    { key: "vehicle", header: "Vehicle" },
-    { key: "licensePlate", header: "License plate" },
-    { key: "driver", header: "Driver" },
-    { key: "startOdometer", header: "Start odometer" },
-    { key: "endOdometer", header: "End odometer" },
-    { key: "distanceKm", header: "Distance (km)" },
-    { key: "fuelLiters", header: "Fuel (L)" },
-    { key: "notes", header: "Notes" },
+    { key: "date", header: t("trips.col.date") },
+    { key: "vehicle", header: t("trips.col.vehicle") },
+    { key: "licensePlate", header: t("vehicles.form.licensePlate") },
+    { key: "driver", header: t("trips.col.driver") },
+    { key: "startOdometer", header: `${t("trips.col.start")} (${unitLabel})` },
+    { key: "endOdometer", header: `${t("trips.col.end")} (${unitLabel})` },
+    { key: "distance", header: `${t("trips.col.distance")} (${unitLabel})` },
+    { key: "fuelLiters", header: `${t("trips.col.fuel")} (L)` },
+    { key: "notes", header: t("trips.form.notes") },
   ]);
 
   const filename = vehicleId

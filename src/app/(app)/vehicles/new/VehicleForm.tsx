@@ -4,14 +4,11 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 
-import {
-  createVehicleAction,
-  type VehicleFormState,
-} from "../actions";
+import { createVehicleAction, type VehicleFormState } from "../actions";
 
 const initialState: VehicleFormState = {};
 
-function Submit() {
+function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -19,27 +16,41 @@ function Submit() {
       disabled={pending}
       className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
     >
-      {pending ? "Saving…" : "Save vehicle"}
+      {pending ? pendingLabel : label}
     </button>
   );
 }
 
-export function VehicleForm() {
+export type VehicleFormLabels = {
+  name: string;
+  licensePlate: string;
+  make: string;
+  model: string;
+  year: string;
+  currentOdometer: string;
+  save: string;
+  saving: string;
+  cancel: string;
+};
+
+export function VehicleForm({ labels }: { labels: VehicleFormLabels }) {
   const [state, action] = useActionState(createVehicleAction, initialState);
   return (
     <form action={action} className="space-y-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field name="name" label="Name" required placeholder="Van A" />
-        <Field name="licensePlate" label="License plate" placeholder="ABC-123" />
-        <Field name="make" label="Make" placeholder="Ford" />
-        <Field name="model" label="Model" placeholder="Transit" />
-        <Field name="year" label="Year" type="number" placeholder="2022" />
+        <Field name="name" label={labels.name} required placeholder="Van A" />
+        <Field name="licensePlate" label={labels.licensePlate} placeholder="ABC-123" />
+        <Field name="make" label={labels.make} placeholder="Ford" />
+        <Field name="model" label={labels.model} placeholder="Transit" />
+        <Field name="year" label={labels.year} type="number" placeholder="2022" />
         <Field
           name="currentOdometer"
-          label="Current odometer (km)"
+          label={labels.currentOdometer}
           type="number"
+          min={0}
+          step="1"
           placeholder="0"
-          defaultValue="0"
+          selectOnFocus
         />
       </div>
       {state.error ? (
@@ -48,12 +59,12 @@ export function VehicleForm() {
         </p>
       ) : null}
       <div className="flex items-center gap-3">
-        <Submit />
+        <Submit label={labels.save} pendingLabel={labels.saving} />
         <Link
           href="/vehicles"
           className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
         >
-          Cancel
+          {labels.cancel}
         </Link>
       </div>
     </form>
@@ -67,6 +78,9 @@ function Field({
   required = false,
   placeholder,
   defaultValue,
+  min,
+  step,
+  selectOnFocus,
 }: {
   name: string;
   label: string;
@@ -74,6 +88,9 @@ function Field({
   required?: boolean;
   placeholder?: string;
   defaultValue?: string;
+  min?: number;
+  step?: string;
+  selectOnFocus?: boolean;
 }) {
   return (
     <div>
@@ -91,6 +108,13 @@ function Field({
         required={required}
         placeholder={placeholder}
         defaultValue={defaultValue}
+        min={min}
+        step={step}
+        onFocus={
+          selectOnFocus
+            ? (event) => event.currentTarget.select()
+            : undefined
+        }
         className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
       />
     </div>

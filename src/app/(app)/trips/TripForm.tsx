@@ -10,12 +10,27 @@ type Vehicle = {
   id: string;
   name: string;
   licensePlate: string | null;
-  currentOdometer: number;
+  currentOdometerDisplay: string;
 };
 
 const initialState: TripFormState = {};
 
-function Submit() {
+export type TripFormLabels = {
+  vehicle: string;
+  vehicleSelect: string;
+  vehicleOptionLast: string;
+  date: string;
+  driver: string;
+  startOdometer: string;
+  endOdometer: string;
+  fuel: string;
+  notes: string;
+  save: string;
+  saving: string;
+  cancel: string;
+};
+
+function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -23,7 +38,7 @@ function Submit() {
       disabled={pending}
       className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
     >
-      {pending ? "Saving…" : "Log trip"}
+      {pending ? pendingLabel : label}
     </button>
   );
 }
@@ -32,10 +47,12 @@ export function TripForm({
   vehicles,
   defaultVehicleId,
   defaultDriverName,
+  labels,
 }: {
   vehicles: Vehicle[];
   defaultVehicleId?: string;
   defaultDriverName?: string;
+  labels: TripFormLabels;
 }) {
   const [state, action] = useActionState(createTripAction, initialState);
   const today = new Date().toISOString().slice(0, 10);
@@ -48,7 +65,7 @@ export function TripForm({
             htmlFor="vehicleId"
             className="block text-sm font-medium text-zinc-700"
           >
-            Vehicle <span className="text-red-500">*</span>
+            {labels.vehicle} <span className="text-red-500">*</span>
           </label>
           <select
             id="vehicleId"
@@ -58,13 +75,13 @@ export function TripForm({
             className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
           >
             <option value="" disabled>
-              Select a vehicle…
+              {labels.vehicleSelect}
             </option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.name}
-                {v.licensePlate ? ` (${v.licensePlate})` : ""} · last{" "}
-                {v.currentOdometer.toLocaleString()} km
+                {v.licensePlate ? ` (${v.licensePlate})` : ""} ·{" "}
+                {labels.vehicleOptionLast} {v.currentOdometerDisplay}
               </option>
             ))}
           </select>
@@ -72,34 +89,38 @@ export function TripForm({
 
         <Field
           name="date"
-          label="Date"
+          label={labels.date}
           type="date"
           required
           defaultValue={today}
         />
         <Field
           name="driverName"
-          label="Driver"
+          label={labels.driver}
           required
           defaultValue={defaultDriverName}
         />
         <Field
           name="startOdometer"
-          label="Start odometer (km)"
+          label={labels.startOdometer}
           type="number"
           required
           min={0}
+          step="1"
+          selectOnFocus
         />
         <Field
           name="endOdometer"
-          label="End odometer (km)"
+          label={labels.endOdometer}
           type="number"
           required
           min={0}
+          step="1"
+          selectOnFocus
         />
         <Field
           name="fuelLiters"
-          label="Fuel used (L)"
+          label={labels.fuel}
           type="number"
           step="0.01"
           min={0}
@@ -109,7 +130,7 @@ export function TripForm({
             htmlFor="notes"
             className="block text-sm font-medium text-zinc-700"
           >
-            Notes
+            {labels.notes}
           </label>
           <textarea
             id="notes"
@@ -126,12 +147,12 @@ export function TripForm({
         </p>
       ) : null}
       <div className="flex items-center gap-3">
-        <Submit />
+        <Submit label={labels.save} pendingLabel={labels.saving} />
         <Link
           href="/trips"
           className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
         >
-          Cancel
+          {labels.cancel}
         </Link>
       </div>
     </form>
@@ -146,6 +167,7 @@ function Field({
   min,
   step,
   defaultValue,
+  selectOnFocus,
 }: {
   name: string;
   label: string;
@@ -154,6 +176,7 @@ function Field({
   min?: number;
   step?: string;
   defaultValue?: string;
+  selectOnFocus?: boolean;
 }) {
   return (
     <div>
@@ -169,6 +192,11 @@ function Field({
         min={min}
         step={step}
         defaultValue={defaultValue}
+        onFocus={
+          selectOnFocus
+            ? (event) => event.currentTarget.select()
+            : undefined
+        }
         className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
       />
     </div>

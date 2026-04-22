@@ -16,6 +16,16 @@ type SessionPayload = {
   name: string;
 };
 
+export type SessionUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: "USER" | "ADMIN";
+  enabled: boolean;
+  unit: "KM" | "MI";
+  locale: "EN" | "FR";
+};
+
 function getSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
   if (!secret || secret.length < 16) {
@@ -91,7 +101,7 @@ export async function destroySession(): Promise<void> {
   jar.delete(COOKIE_NAME);
 }
 
-export async function getCurrentUser() {
+export async function getCurrentUser(): Promise<SessionUser | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
@@ -99,13 +109,33 @@ export async function getCurrentUser() {
   if (!session) return null;
   const user = await prisma.user.findUnique({
     where: { id: session.sub },
-    select: { id: true, email: true, name: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      enabled: true,
+      unit: true,
+      locale: true,
+    },
   });
   return user;
 }
 
-export async function requireUser() {
+export async function requireUser(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (!user.enabled) {
+    // Session is valid, but the user was disabled — invalidate and send them
+    // to the pending-approval page.
+    await destroySession();
+    redirect("/pending");
+  }
+  return user;
+}
+
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (user.role !== "ADMIN") redirect("/dashboard");
   return user;
 }

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { parseOdometerToKm, type Unit } from "@/lib/units";
 
 const VehicleSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
@@ -42,8 +43,8 @@ const VehicleSchema = z.object({
     .optional()
     .transform((v) => (v ? Number(v) : 0))
     .refine(
-      (v) => Number.isInteger(v) && v >= 0,
-      "Odometer must be a non-negative integer",
+      (v) => Number.isFinite(v) && v >= 0,
+      "Odometer must be a non-negative number",
     ),
 });
 
@@ -53,7 +54,7 @@ export async function createVehicleAction(
   _prev: VehicleFormState,
   formData: FormData,
 ): Promise<VehicleFormState> {
-  await requireUser();
+  const user = await requireUser();
   const parsed = VehicleSchema.safeParse({
     name: formData.get("name"),
     make: formData.get("make") ?? undefined,
@@ -66,6 +67,13 @@ export async function createVehicleAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
+  // The form takes the odometer in the user's preferred unit. Convert to the
+  // canonical kilometer value before persisting.
+  const currentOdometerKm = parseOdometerToKm(
+    parsed.data.currentOdometer,
+    user.unit as Unit,
+  );
+
   await prisma.vehicle.create({
     data: {
       name: parsed.data.name,
@@ -73,7 +81,7 @@ export async function createVehicleAction(
       model: parsed.data.model,
       year: parsed.data.year,
       licensePlate: parsed.data.licensePlate,
-      currentOdometer: parsed.data.currentOdometer,
+      currentOdometer: currentOdometerKm,
     },
   });
 
