@@ -89,6 +89,8 @@ export default async function NewTripPage({
             startOdometer: t("trips.form.startOdometer", { unit }),
             endOdometer: t("trips.form.endOdometer", { unit }),
             startPrefillHelp: t("trips.form.startPrefillHelp"),
+            distance: t("trips.form.distance"),
+            distanceUnit: unit,
             notes: t("trips.form.notes"),
             save: t("trips.form.save"),
             saving: t("common.saving"),

@@ -101,6 +101,7 @@
   "trips.form.startOdometer": "Odomètre de départ ({unit})",
   "trips.form.endOdometer": "Odomètre d'arrivée ({unit})",
   "trips.form.startPrefillHelp": "Pré-rempli avec le dernier relevé de ce véhicule. Modifiable.",
+  "trips.form.distance": "Distance",
   "trips.form.notes": "Notes",
   "trips.form.save": "Enregistrer le trajet",
 

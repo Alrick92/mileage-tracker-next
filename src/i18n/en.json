@@ -101,6 +101,7 @@
   "trips.form.startOdometer": "Start odometer ({unit})",
   "trips.form.endOdometer": "End odometer ({unit})",
   "trips.form.startPrefillHelp": "Pre-filled with this vehicle's last recorded reading. Edit if needed.",
+  "trips.form.distance": "Distance",
   "trips.form.notes": "Notes",
   "trips.form.save": "Log trip",
 

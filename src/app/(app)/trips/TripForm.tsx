@@ -27,6 +27,8 @@ export type TripFormLabels = {
   startOdometer: string;
   endOdometer: string;
   startPrefillHelp: string;
+  distance: string;
+  distanceUnit: string;
   notes: string;
   save: string;
   saving: string;
@@ -72,6 +74,22 @@ export function TripForm({
       ? String(vehiclesById[initialVehicleId].defaultStartOdometer)
       : "",
   );
+  const [endOdometer, setEndOdometer] = useState<string>("");
+
+  const distancePreview = useMemo(() => {
+    const start = Number(startOdometer);
+    const end = Number(endOdometer);
+    if (
+      startOdometer === "" ||
+      endOdometer === "" ||
+      !Number.isFinite(start) ||
+      !Number.isFinite(end) ||
+      end < start
+    ) {
+      return null;
+    }
+    return end - start;
+  }, [startOdometer, endOdometer]);
 
   function onVehicleChange(id: string) {
     setSelectedVehicleId(id);
@@ -149,15 +167,38 @@ export function TripForm({
           />
           <p className="mt-1 text-xs text-zinc-500">{labels.startPrefillHelp}</p>
         </div>
-        <Field
-          name="endOdometer"
-          label={labels.endOdometer}
-          type="number"
-          required
-          min={0}
-          step="1"
-          selectOnFocus
-        />
+        <div>
+          <label
+            htmlFor="endOdometer"
+            className="block text-sm font-medium text-zinc-700"
+          >
+            {labels.endOdometer}
+            <span className="ml-0.5 text-red-500">*</span>
+          </label>
+          <input
+            id="endOdometer"
+            name="endOdometer"
+            type="number"
+            required
+            min={0}
+            step="1"
+            value={endOdometer}
+            onChange={(e) => setEndOdometer(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
+            className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          />
+          <p
+            className="mt-1 text-xs text-zinc-500"
+            aria-live="polite"
+          >
+            {labels.distance}:{" "}
+            <span className="font-mono text-zinc-900">
+              {distancePreview === null
+                ? "—"
+                : `${distancePreview.toLocaleString()} ${labels.distanceUnit}`}
+            </span>
+          </p>
+        </div>
         <div className="md:col-span-2">
           <label
             htmlFor="notes"
