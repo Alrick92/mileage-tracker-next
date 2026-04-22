@@ -56,7 +56,10 @@ export async function importTripsAction(
   }
 
   const vehicle = await prisma.vehicle.findFirst({
-    where: { id: vehicleId, userId: user.id },
+    where: {
+      id: vehicleId,
+      assignments: { some: { userId: user.id } },
+    },
     select: { id: true, currentOdometer: true },
   });
   if (!vehicle) {

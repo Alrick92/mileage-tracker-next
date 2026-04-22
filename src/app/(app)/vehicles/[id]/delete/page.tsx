@@ -27,12 +27,21 @@ export default async function DeleteVehiclePage({
   const { error } = await searchParams;
 
   const vehicle = await prisma.vehicle.findFirst({
-    where: { id, userId: user.id },
-    include: { _count: { select: { trips: true } } },
+    where: {
+      id,
+      assignments: { some: { userId: user.id } },
+    },
+    include: {
+      _count: { select: { trips: true, assignments: true } },
+    },
   });
   if (!vehicle) notFound();
 
   const tripCount = vehicle._count.trips;
+  const assigneeCount = vehicle._count.assignments;
+  const isSharedWithOthers = assigneeCount > 1;
+  const canDelete =
+    tripCount === 0 && (!isSharedWithOthers || user.role === "ADMIN");
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
@@ -75,6 +84,15 @@ export default async function DeleteVehiclePage({
             {t("vehicle.delete.blocked", { count: String(tripCount) })}
           </p>
         ) : null}
+        {tripCount === 0 &&
+        isSharedWithOthers &&
+        user.role !== "ADMIN" ? (
+          <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {t("vehicle.delete.sharedBlocked", {
+              count: String(assigneeCount),
+            })}
+          </p>
+        ) : null}
 
         <form
           action={deleteVehicleAction}
@@ -83,7 +101,7 @@ export default async function DeleteVehiclePage({
           <input type="hidden" name="vehicleId" value={vehicle.id} />
           <button
             type="submit"
-            disabled={tripCount > 0}
+            disabled={!canDelete}
             className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("common.delete")}

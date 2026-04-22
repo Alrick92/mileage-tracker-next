@@ -19,7 +19,7 @@ export default async function ImportTripsPage() {
   const unitLabel = unitShort(user.unit, user.locale);
 
   const vehicles = await prisma.vehicle.findMany({
-    where: { userId: user.id },
+    where: { assignments: { some: { userId: user.id } } },
     orderBy: { name: "asc" },
     select: { id: true, name: true, licensePlate: true },
   });

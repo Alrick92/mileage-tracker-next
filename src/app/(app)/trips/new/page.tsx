@@ -27,13 +27,16 @@ export default async function NewTripPage({
   const { vehicleId } = await searchParams;
 
   const vehiclesRaw = await prisma.vehicle.findMany({
-    where: { userId: user.id },
+    where: { assignments: { some: { userId: user.id } } },
     orderBy: { name: "asc" },
     select: {
       id: true,
       name: true,
       licensePlate: true,
       currentOdometer: true,
+      // Pre-fill start odometer with the vehicle's most recent trip end across
+      // ALL assigned drivers (not just the current user's own trips) so shared
+      // vehicles stay in sync.
       trips: {
         orderBy: [{ date: "desc" }, { createdAt: "desc" }],
         take: 1,
