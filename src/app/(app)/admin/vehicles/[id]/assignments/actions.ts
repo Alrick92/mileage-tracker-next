@@ -53,15 +53,18 @@ export async function adminAssignUserAction(
     );
   }
 
-  // upsert via unique composite so re-submitting the form is idempotent
-  const result = await prisma.vehicleAssignment.upsert({
+  // Detect pre-existing assignment so the upsert below stays idempotent
+  // against double-submits but only real creations are audited.
+  const existingAssignment = await prisma.vehicleAssignment.findUnique({
+    where: { vehicleId_userId: { vehicleId, userId } },
+    select: { vehicleId: true },
+  });
+  await prisma.vehicleAssignment.upsert({
     where: { vehicleId_userId: { vehicleId, userId } },
     create: { vehicleId, userId },
     update: {},
   });
-  // Only audit real changes (create), not idempotent no-op re-submits.
-  const created = result.createdAt.getTime() > Date.now() - 5_000;
-  if (created) {
+  if (!existingAssignment) {
     await writeAuditLog({
       actorId: admin.id,
       action: "VEHICLE_UPDATED",

@@ -32,8 +32,9 @@ export async function registerAction(
   const email = parsed.data.email.toLowerCase();
   const passwordHash = await hashPassword(parsed.data.password);
 
+  let created: { id: string; email: string; name: string };
   try {
-    const created = await prisma.user.create({
+    created = await prisma.user.create({
       data: {
         name: parsed.data.name,
         email,
@@ -43,16 +44,6 @@ export async function registerAction(
       },
       select: { id: true, email: true, name: true },
     });
-    // Self-registration: the new user is both actor and entity. The audit
-    // entry makes the signup visible to admins (who otherwise had to check
-    // `/admin/users` manually).
-    await writeAuditLog({
-      actorId: created.id,
-      action: "USER_CREATED",
-      entityType: "User",
-      entityId: created.id,
-      summary: `${created.name} <${created.email}>`,
-    });
   } catch (err) {
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
@@ -61,6 +52,21 @@ export async function registerAction(
       return { error: "An account with that email already exists." };
     }
     throw err;
+  }
+
+  // Audit is best-effort: a failure here must not surface a 500 to a user
+  // whose account has already been committed (they would then hit the
+  // duplicate-email error on retry with no way to sign in).
+  try {
+    await writeAuditLog({
+      actorId: created.id,
+      action: "USER_CREATED",
+      entityType: "User",
+      entityId: created.id,
+      summary: `${created.name} <${created.email}>`,
+    });
+  } catch (err) {
+    console.error("registerAction: audit write failed", err);
   }
 
   // New users are disabled by default. No session is created.
