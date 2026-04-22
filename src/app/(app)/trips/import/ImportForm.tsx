@@ -9,6 +9,10 @@ import {
 } from "./actions";
 
 export type ImportFormLabels = {
+  vehicle: string;
+  vehiclePlaceholder: string;
+  vehicleHelp: string;
+  vehicleEmpty: string;
   chooseFile: string;
   fileHelp: string;
   submit: string;
@@ -20,7 +24,19 @@ export type ImportFormLabels = {
   rowLabel: string;
 };
 
-export function ImportForm({ labels }: { labels: ImportFormLabels }) {
+export type ImportFormVehicleOption = {
+  id: string;
+  name: string;
+  licensePlate: string | null;
+};
+
+export function ImportForm({
+  labels,
+  vehicles,
+}: {
+  labels: ImportFormLabels;
+  vehicles: ImportFormVehicleOption[];
+}) {
   const [state, formAction, pending] = useActionState<
     ImportTripsState,
     FormData
@@ -28,9 +44,40 @@ export function ImportForm({ labels }: { labels: ImportFormLabels }) {
 
   const hasResult =
     typeof state.imported === "number" || typeof state.skipped === "number";
+  const hasVehicles = vehicles.length > 0;
 
   return (
     <form action={formAction} className="space-y-4">
+      <div>
+        <label
+          htmlFor="vehicleId"
+          className="block text-sm font-medium text-zinc-700"
+        >
+          {labels.vehicle}
+          <span className="ml-0.5 text-red-500">*</span>
+        </label>
+        <select
+          id="vehicleId"
+          name="vehicleId"
+          required
+          disabled={!hasVehicles}
+          defaultValue=""
+          className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500"
+        >
+          <option value="" disabled>
+            {labels.vehiclePlaceholder}
+          </option>
+          {vehicles.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.licensePlate ? `${v.name} (${v.licensePlate})` : v.name}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-zinc-500">
+          {hasVehicles ? labels.vehicleHelp : labels.vehicleEmpty}
+        </p>
+      </div>
+
       <div>
         <label
           htmlFor="file"
@@ -98,7 +145,7 @@ export function ImportForm({ labels }: { labels: ImportFormLabels }) {
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || !hasVehicles}
           className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {pending ? labels.submitting : labels.submit}
