@@ -29,6 +29,28 @@ function PendingButton({
   );
 }
 
+function SelfPlaceholder() {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex select-none items-center rounded-md border border-dashed border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-400"
+    >
+      —
+    </span>
+  );
+}
+
+function ErrorNote({ message }: { message: string }) {
+  return (
+    <span
+      role="alert"
+      className="ml-2 inline-flex items-center rounded-md bg-red-50 px-1.5 py-0.5 font-mono text-[10px] text-red-700"
+    >
+      {message}
+    </span>
+  );
+}
+
 export function EnabledToggleForm({
   userId,
   enabled,
@@ -40,9 +62,10 @@ export function EnabledToggleForm({
   labels: { enable: string; disable: string };
   isSelf: boolean;
 }) {
-  const [, action] = useActionState(setEnabledAction, initialState);
+  const [state, action] = useActionState(setEnabledAction, initialState);
+  if (isSelf && enabled) return <SelfPlaceholder />;
   return (
-    <form action={action} className="inline-flex">
+    <form action={action} className="inline-flex items-center">
       <input type="hidden" name="userId" value={userId} />
       <input
         type="hidden"
@@ -50,12 +73,11 @@ export function EnabledToggleForm({
         value={enabled ? "false" : "true"}
       />
       {enabled ? (
-        <PendingButton destructive>
-          {isSelf ? "—" : labels.disable}
-        </PendingButton>
+        <PendingButton destructive>{labels.disable}</PendingButton>
       ) : (
         <PendingButton>{labels.enable}</PendingButton>
       )}
+      {state.error ? <ErrorNote message={state.error} /> : null}
     </form>
   );
 }
@@ -71,9 +93,10 @@ export function RoleToggleForm({
   labels: { promote: string; demote: string };
   isSelf: boolean;
 }) {
-  const [, action] = useActionState(setRoleAction, initialState);
+  const [state, action] = useActionState(setRoleAction, initialState);
+  if (isSelf && role === "ADMIN") return <SelfPlaceholder />;
   return (
-    <form action={action} className="inline-flex">
+    <form action={action} className="inline-flex items-center">
       <input type="hidden" name="userId" value={userId} />
       <input
         type="hidden"
@@ -81,12 +104,11 @@ export function RoleToggleForm({
         value={role === "ADMIN" ? "USER" : "ADMIN"}
       />
       {role === "ADMIN" ? (
-        <PendingButton destructive>
-          {isSelf ? "—" : labels.demote}
-        </PendingButton>
+        <PendingButton destructive>{labels.demote}</PendingButton>
       ) : (
         <PendingButton>{labels.promote}</PendingButton>
       )}
+      {state.error ? <ErrorNote message={state.error} /> : null}
     </form>
   );
 }
