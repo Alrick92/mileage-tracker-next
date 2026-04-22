@@ -152,6 +152,14 @@ export async function importTripsAction(
 
     const startRaw = (cells[iStart] ?? "").trim();
     const endRaw = (cells[iEnd] ?? "").trim();
+    if (!startRaw) {
+      pushError("Start odometer is required.");
+      return;
+    }
+    if (!endRaw) {
+      pushError("End odometer is required.");
+      return;
+    }
     const startNum = Number(startRaw);
     const endNum = Number(endRaw);
     if (!Number.isFinite(startNum) || startNum < 0) {
