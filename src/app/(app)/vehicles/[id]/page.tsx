@@ -143,7 +143,7 @@ export default async function VehicleDetailPage({
       ) : (
         <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className="w-full min-w-[800px] text-sm">
               <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">
@@ -160,6 +160,9 @@ export default async function VehicleDetailPage({
                   </th>
                   <th className="px-4 py-3 text-right font-medium">
                     {t("trips.col.distance")} ({unitShort(unit, locale)})
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    {t("trips.col.notes")}
                   </th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -186,13 +189,39 @@ export default async function VehicleDetailPage({
                         locale,
                       )}
                     </td>
+                    <td className="max-w-[220px] px-4 py-3 text-zinc-600">
+                      {trip.notes ? (
+                        <span
+                          className="block truncate"
+                          title={trip.notes}
+                        >
+                          {trip.notes}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-300">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/trips/${trip.id}/delete`}
-                        className="text-xs font-medium text-red-600 underline-offset-4 hover:underline"
-                      >
-                        {t("common.delete")}
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/trips/${trip.id}`}
+                          className="text-xs font-medium text-zinc-700 underline-offset-4 hover:underline"
+                        >
+                          {t("common.view")}
+                        </Link>
+                        <Link
+                          href={`/trips/${trip.id}/edit`}
+                          className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
+                        >
+                          {t("common.edit")}
+                        </Link>
+                        <Link
+                          href={`/trips/${trip.id}/delete`}
+                          className="text-xs font-medium text-red-600 underline-offset-4 hover:underline"
+                        >
+                          {t("common.delete")}
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

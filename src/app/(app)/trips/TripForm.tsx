@@ -4,7 +4,11 @@ import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 
-import { createTripAction, type TripFormState } from "./actions";
+import {
+  createTripAction,
+  updateTripAction,
+  type TripFormState,
+} from "./actions";
 
 export type TripFormVehicle = {
   id: string;
@@ -48,18 +52,37 @@ function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }
   );
 }
 
+export type TripFormInitialValues = {
+  tripId: string;
+  vehicleId: string;
+  driverName: string;
+  date: string;
+  startOdometer: number;
+  endOdometer: number;
+  notes: string;
+};
+
 export function TripForm({
   vehicles,
   defaultVehicleId,
   defaultDriverName,
   labels,
+  mode = "create",
+  initialValues,
+  cancelHref = "/trips",
 }: {
   vehicles: TripFormVehicle[];
   defaultVehicleId?: string;
   defaultDriverName?: string;
   labels: TripFormLabels;
+  mode?: "create" | "edit";
+  initialValues?: TripFormInitialValues;
+  cancelHref?: string;
 }) {
-  const [state, action] = useActionState(createTripAction, initialState);
+  const [state, action] = useActionState(
+    mode === "edit" ? updateTripAction : createTripAction,
+    initialState,
+  );
   const today = new Date().toISOString().slice(0, 10);
 
   const vehiclesById = useMemo(
@@ -67,14 +90,19 @@ export function TripForm({
     [vehicles],
   );
 
-  const initialVehicleId = defaultVehicleId ?? "";
+  const initialVehicleId =
+    initialValues?.vehicleId ?? defaultVehicleId ?? "";
   const [selectedVehicleId, setSelectedVehicleId] = useState(initialVehicleId);
   const [startOdometer, setStartOdometer] = useState<string>(
-    initialVehicleId && vehiclesById[initialVehicleId]
-      ? String(vehiclesById[initialVehicleId].defaultStartOdometer)
-      : "",
+    initialValues
+      ? String(initialValues.startOdometer)
+      : initialVehicleId && vehiclesById[initialVehicleId]
+        ? String(vehiclesById[initialVehicleId].defaultStartOdometer)
+        : "",
   );
-  const [endOdometer, setEndOdometer] = useState<string>("");
+  const [endOdometer, setEndOdometer] = useState<string>(
+    initialValues ? String(initialValues.endOdometer) : "",
+  );
 
   const distancePreview = useMemo(() => {
     const start = Number(startOdometer);
@@ -93,16 +121,23 @@ export function TripForm({
 
   function onVehicleChange(id: string) {
     setSelectedVehicleId(id);
-    const v = vehiclesById[id];
-    if (v) {
-      setStartOdometer(String(v.defaultStartOdometer));
-    } else {
-      setStartOdometer("");
+    // Only auto-prefill start odometer in create mode, so that editing an
+    // existing trip never silently rewrites the user's original numbers.
+    if (mode === "create") {
+      const v = vehiclesById[id];
+      if (v) {
+        setStartOdometer(String(v.defaultStartOdometer));
+      } else {
+        setStartOdometer("");
+      }
     }
   }
 
   return (
     <form action={action} className="space-y-5">
+      {mode === "edit" && initialValues ? (
+        <input type="hidden" name="tripId" value={initialValues.tripId} />
+      ) : null}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="md:col-span-2">
           <label
@@ -137,13 +172,13 @@ export function TripForm({
           label={labels.date}
           type="date"
           required
-          defaultValue={today}
+          defaultValue={initialValues?.date ?? today}
         />
         <Field
           name="driverName"
           label={labels.driver}
           required
-          defaultValue={defaultDriverName}
+          defaultValue={initialValues?.driverName ?? defaultDriverName}
         />
         <div>
           <label
@@ -210,6 +245,7 @@ export function TripForm({
             id="notes"
             name="notes"
             rows={3}
+            defaultValue={initialValues?.notes ?? ""}
             className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
           />
         </div>
@@ -223,7 +259,7 @@ export function TripForm({
       <div className="flex items-center gap-3">
         <Submit label={labels.save} pendingLabel={labels.saving} />
         <Link
-          href="/trips"
+          href={cancelHref}
           className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
         >
           {labels.cancel}

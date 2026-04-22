@@ -25,6 +25,7 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{
   saved?: string;
+  updated?: string;
   deleted?: string;
   error?: string;
   page?: string;
@@ -73,6 +74,9 @@ export default async function TripsPage({
     <div className="space-y-6">
       {params.saved ? (
         <Toast variant="success" message={t("toast.tripSaved")} />
+      ) : null}
+      {params.updated ? (
+        <Toast variant="success" message={t("toast.tripUpdated")} />
       ) : null}
       {params.deleted ? (
         <Toast variant="success" message={t("toast.tripDeleted")} />
@@ -159,6 +163,9 @@ export default async function TripsPage({
                   <th className="px-4 py-3 text-right font-medium">
                     {t("trips.col.distance")} ({unitShort(unit, locale)})
                   </th>
+                  <th className="px-4 py-3 font-medium">
+                    {t("trips.col.notes")}
+                  </th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -194,13 +201,39 @@ export default async function TripsPage({
                         locale,
                       )}
                     </td>
+                    <td className="max-w-[220px] px-4 py-3 text-zinc-600">
+                      {trip.notes ? (
+                        <span
+                          className="block truncate"
+                          title={trip.notes}
+                        >
+                          {trip.notes}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-300">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/trips/${trip.id}/delete`}
-                        className="text-xs font-medium text-red-600 underline-offset-4 hover:underline"
-                      >
-                        {t("common.delete")}
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          href={`/trips/${trip.id}`}
+                          className="text-xs font-medium text-zinc-700 underline-offset-4 hover:underline"
+                        >
+                          {t("common.view")}
+                        </Link>
+                        <Link
+                          href={`/trips/${trip.id}/edit`}
+                          className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
+                        >
+                          {t("common.edit")}
+                        </Link>
+                        <Link
+                          href={`/trips/${trip.id}/delete`}
+                          className="text-xs font-medium text-red-600 underline-offset-4 hover:underline"
+                        >
+                          {t("common.delete")}
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

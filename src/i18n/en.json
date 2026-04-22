@@ -41,6 +41,7 @@
   "toast.vehicleSaved": "Vehicle saved.",
   "toast.vehicleDeleted": "Vehicle deleted.",
   "toast.tripSaved": "Trip logged.",
+  "toast.tripUpdated": "Trip updated.",
   "toast.tripDeleted": "Trip deleted.",
   "toast.passwordUpdated": "Password updated.",
   "toast.passwordReset": "Password reset.",
@@ -96,6 +97,8 @@
   "trips.col.start": "Start",
   "trips.col.end": "End",
   "trips.col.distance": "Distance",
+  "trips.col.notes": "Notes",
+  "trips.col.actions": "Actions",
   "trips.new.title": "Log trip",
   "trips.new.subtitle": "Record a trip and update the vehicle odometer.",
   "trips.new.needVehicle": "Add a vehicle before logging a trip.",
@@ -111,6 +114,15 @@
   "trips.form.distance": "Distance",
   "trips.form.notes": "Notes",
   "trips.form.save": "Log trip",
+
+  "trips.edit.title": "Edit trip",
+  "trips.edit.subtitle": "Update trip details. Odometer and vehicle changes are kept in sync with the vehicle's current reading.",
+  "trips.edit.save": "Save changes",
+
+  "trip.detail.title": "Trip details",
+  "trip.detail.subtitle": "Full record for this trip, including notes.",
+  "trip.detail.notes.empty": "No notes for this trip.",
+  "trip.detail.dangerZone": "Danger zone",
 
   "trip.delete.title": "Delete trip?",
   "trip.delete.subtitle": "This action cannot be undone.",
