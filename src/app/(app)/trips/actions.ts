@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { parseOdometerToKm, type Unit } from "@/lib/units";
 
 const TripSchema = z
   .object({
@@ -20,16 +21,16 @@ const TripSchema = z
       .min(1, "Start odometer is required")
       .transform(Number)
       .refine(
-        (v) => Number.isInteger(v) && v >= 0,
-        "Start odometer must be a non-negative integer",
+        (v) => Number.isFinite(v) && v >= 0,
+        "Start odometer must be a non-negative number",
       ),
     endOdometer: z
       .string()
       .min(1, "End odometer is required")
       .transform(Number)
       .refine(
-        (v) => Number.isInteger(v) && v >= 0,
-        "End odometer must be a non-negative integer",
+        (v) => Number.isFinite(v) && v >= 0,
+        "End odometer must be a non-negative number",
       ),
     fuelLiters: z
       .string()
@@ -80,6 +81,12 @@ export async function createTripAction(
     return { error: "Vehicle not found." };
   }
 
+  // Inputs arrive in the user's preferred unit. Convert to canonical km for
+  // storage and odometer-update logic.
+  const unit = user.unit as Unit;
+  const startOdometerKm = parseOdometerToKm(parsed.data.startOdometer, unit);
+  const endOdometerKm = parseOdometerToKm(parsed.data.endOdometer, unit);
+
   await prisma.$transaction(async (tx) => {
     await tx.trip.create({
       data: {
@@ -87,17 +94,17 @@ export async function createTripAction(
         userId: user.id,
         driverName: parsed.data.driverName,
         date: new Date(parsed.data.date),
-        startOdometer: parsed.data.startOdometer,
-        endOdometer: parsed.data.endOdometer,
+        startOdometer: startOdometerKm,
+        endOdometer: endOdometerKm,
         fuelLiters: parsed.data.fuelLiters,
         notes: parsed.data.notes,
       },
     });
 
-    if (parsed.data.endOdometer > vehicle.currentOdometer) {
+    if (endOdometerKm > vehicle.currentOdometer) {
       await tx.vehicle.update({
         where: { id: vehicle.id },
-        data: { currentOdometer: parsed.data.endOdometer },
+        data: { currentOdometer: endOdometerKm },
       });
     }
   });

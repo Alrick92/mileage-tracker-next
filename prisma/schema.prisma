@@ -7,11 +7,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Unit {
+  KM
+  MI
+}
+
+enum Locale {
+  EN
+  FR
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   name         String
   passwordHash String
+  role         Role     @default(USER)
+  enabled      Boolean  @default(false)
+  unit         Unit     @default(MI)
+  locale       Locale   @default(EN)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
