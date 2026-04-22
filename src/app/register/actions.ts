@@ -60,6 +60,8 @@ export async function registerAction(
   try {
     await writeAuditLog({
       actorId: created.id,
+      actorEmail: created.email,
+      actorName: created.name,
       action: "USER_CREATED",
       entityType: "User",
       entityId: created.id,

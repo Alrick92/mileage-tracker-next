@@ -6,6 +6,14 @@ export type AuditEntityType = "User" | "Vehicle" | "Trip";
 
 export type WriteAuditInput = {
   actorId: string | null;
+  /**
+   * Pre-resolved actor email. When provided (e.g. from a session user),
+   * the helper skips its own `user.findUnique` lookup. Pass this when
+   * calling inside a hot loop to avoid N+1 DB round-trips inside the
+   * surrounding transaction.
+   */
+  actorEmail?: string | null;
+  actorName?: string | null;
   action: AuditAction;
   entityType: AuditEntityType;
   entityId: string;
@@ -27,9 +35,15 @@ export async function writeAuditLog(
 ): Promise<void> {
   const client = tx ?? prisma;
 
-  let actorEmail: string | null = null;
-  let actorName: string | null = null;
-  if (input.actorId) {
+  let actorEmail: string | null = input.actorEmail ?? null;
+  let actorName: string | null = input.actorName ?? null;
+  // Only fall back to a DB lookup when the caller hasn't already supplied
+  // the snapshot fields.
+  if (
+    input.actorId &&
+    input.actorEmail === undefined &&
+    input.actorName === undefined
+  ) {
     const actor = await client.user.findUnique({
       where: { id: input.actorId },
       select: { email: true, name: true },

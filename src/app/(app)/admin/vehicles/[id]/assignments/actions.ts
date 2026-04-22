@@ -53,34 +53,41 @@ export async function adminAssignUserAction(
     );
   }
 
-  // Detect pre-existing assignment so the upsert below stays idempotent
-  // against double-submits but only real creations are audited.
-  const existingAssignment = await prisma.vehicleAssignment.findUnique({
-    where: { vehicleId_userId: { vehicleId, userId } },
-    select: { vehicleId: true },
-  });
-  await prisma.vehicleAssignment.upsert({
-    where: { vehicleId_userId: { vehicleId, userId } },
-    create: { vehicleId, userId },
-    update: {},
-  });
-  if (!existingAssignment) {
-    await writeAuditLog({
-      actorId: admin.id,
-      action: "VEHICLE_UPDATED",
-      entityType: "Vehicle",
-      entityId: vehicleId,
-      summary: vehicle.licensePlate
-        ? `${vehicle.name} (${vehicle.licensePlate})`
-        : vehicle.name,
-      details: {
-        change: "driverAssigned",
-        userId: user.id,
-        userEmail: user.email,
-        userName: user.name,
-      },
+  // Atomic check-create-audit: wrap in a single transaction so concurrent
+  // double-submits or parallel admin requests can't each pass the "new"
+  // check and write duplicate audit entries.
+  await prisma.$transaction(async (tx) => {
+    const existingAssignment = await tx.vehicleAssignment.findUnique({
+      where: { vehicleId_userId: { vehicleId, userId } },
+      select: { vehicleId: true },
     });
-  }
+    if (existingAssignment) {
+      return; // idempotent: no-op, no audit
+    }
+    await tx.vehicleAssignment.create({
+      data: { vehicleId, userId },
+    });
+    await writeAuditLog(
+      {
+        actorId: admin.id,
+        actorEmail: admin.email,
+        actorName: admin.name,
+        action: "VEHICLE_UPDATED",
+        entityType: "Vehicle",
+        entityId: vehicleId,
+        summary: vehicle.licensePlate
+          ? `${vehicle.name} (${vehicle.licensePlate})`
+          : vehicle.name,
+        details: {
+          change: "driverAssigned",
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.name,
+        },
+      },
+      tx,
+    );
+  });
 
   revalidatePath(`/admin/vehicles/${vehicleId}/assignments`);
   revalidatePath("/admin/fleet");
@@ -138,6 +145,8 @@ export async function adminUnassignUserAction(
   if (deleted && vehicle && user) {
     await writeAuditLog({
       actorId: admin.id,
+      actorEmail: admin.email,
+      actorName: admin.name,
       action: "VEHICLE_UPDATED",
       entityType: "Vehicle",
       entityId: vehicleId,

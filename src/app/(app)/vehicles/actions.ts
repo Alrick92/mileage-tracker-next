@@ -93,6 +93,8 @@ export async function createVehicleAction(
     await writeAuditLog(
       {
         actorId: user.id,
+        actorEmail: user.email,
+        actorName: user.name,
         action: "VEHICLE_CREATED",
         entityType: "Vehicle",
         entityId: vehicle.id,

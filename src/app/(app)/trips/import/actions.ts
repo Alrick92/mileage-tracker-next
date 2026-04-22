@@ -215,6 +215,10 @@ export async function importTripsAction(
       await writeAuditLog(
         {
           actorId: user.id,
+          // Pre-resolved so the helper skips a redundant user.findUnique
+          // on every imported row inside this transaction.
+          actorEmail: user.email,
+          actorName: user.name,
           action: "TRIP_CREATED",
           entityType: "Trip",
           entityId: trip.id,

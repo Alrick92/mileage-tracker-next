@@ -106,6 +106,8 @@ export async function createTripAction(
     await writeAuditLog(
       {
         actorId: user.id,
+        actorEmail: user.email,
+        actorName: user.name,
         action: "TRIP_CREATED",
         entityType: "Trip",
         entityId: trip.id,
@@ -204,6 +206,8 @@ export async function updateTripAction(
     await writeAuditLog(
       {
         actorId: user.id,
+        actorEmail: user.email,
+        actorName: user.name,
         action: "TRIP_UPDATED",
         entityType: "Trip",
         entityId: updated.id,
