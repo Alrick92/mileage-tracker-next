@@ -148,23 +148,31 @@ export async function adminUnassignUserAction(
     .catch(() => null);
 
   if (deleted && vehicle && user) {
-    await writeAuditLog({
-      actorId: admin.id,
-      actorEmail: admin.email,
-      actorName: admin.name,
-      action: "VEHICLE_UPDATED",
-      entityType: "Vehicle",
-      entityId: vehicleId,
-      summary: vehicle.licensePlate
-        ? `${vehicle.name} (${vehicle.licensePlate})`
-        : vehicle.name,
-      details: {
-        change: "driverUnassigned",
-        userId: user.id,
-        userEmail: user.email,
-        userName: user.name,
-      },
-    });
+    // Audit is best-effort here: the delete has already committed, so a
+    // transient failure on the audit write must not surface a 500 (the
+    // retry would see `deleted=null` and silently skip the audit, losing
+    // the entry anyway). Log the failure instead.
+    try {
+      await writeAuditLog({
+        actorId: admin.id,
+        actorEmail: admin.email,
+        actorName: admin.name,
+        action: "VEHICLE_UPDATED",
+        entityType: "Vehicle",
+        entityId: vehicleId,
+        summary: vehicle.licensePlate
+          ? `${vehicle.name} (${vehicle.licensePlate})`
+          : vehicle.name,
+        details: {
+          change: "driverUnassigned",
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.name,
+        },
+      });
+    } catch (err) {
+      console.error("adminUnassignUserAction: audit write failed", err);
+    }
   }
 
   revalidatePath(`/admin/vehicles/${vehicleId}/assignments`);
