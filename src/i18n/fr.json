@@ -5,6 +5,7 @@
   "nav.dashboard": "Tableau de bord",
   "nav.vehicles": "Véhicules",
   "nav.trips": "Trajets",
+  "nav.reports": "Rapports",
   "nav.settings": "Paramètres",
   "nav.admin": "Utilisateurs",
   "nav.fleet": "Flotte",
@@ -278,5 +279,29 @@
   "audit.action.VEHICLE_CREATED": "Véhicule créé",
   "audit.action.VEHICLE_UPDATED": "Véhicule modifié",
   "audit.action.TRIP_CREATED": "Trajet ajouté",
-  "audit.action.TRIP_UPDATED": "Trajet modifié"
+  "audit.action.TRIP_UPDATED": "Trajet modifié",
+
+  "reports.title": "Rapports",
+  "reports.subtitle": "Exportez le kilométrage en PDF pour une plage de dates. Les distances sont affichées en {unit}.",
+  "reports.from": "Du",
+  "reports.to": "Au",
+  "reports.vehicle": "Véhicule",
+  "reports.vehicleAll": "Tous mes véhicules",
+  "reports.vehicleHelp": "Laissez sur \"Tous mes véhicules\" pour obtenir un PDF avec une section par véhicule, ou choisissez un véhicule pour limiter le rapport.",
+  "reports.download": "Télécharger le PDF",
+  "reports.noVehicles": "Aucun véhicule ne vous est assigné. Ajoutez ou demandez un véhicule avant de générer un rapport.",
+
+  "reports.pdf.title": "Rapport de kilométrage",
+  "reports.pdf.generatedOn": "Généré le",
+  "reports.pdf.driver": "Conducteur",
+  "reports.pdf.range": "Plage de dates",
+  "reports.pdf.col.date": "Date",
+  "reports.pdf.col.driver": "Conducteur",
+  "reports.pdf.col.start": "Départ",
+  "reports.pdf.col.end": "Arrivée",
+  "reports.pdf.col.distance": "Distance",
+  "reports.pdf.col.notes": "Notes",
+  "reports.pdf.emptySection": "Aucun trajet sur la période sélectionnée.",
+  "reports.pdf.subtotal": "Sous-total : {count} trajet(s) · {distance}",
+  "reports.pdf.grandTotal": "Total : {count} trajet(s) · {distance}"
 }

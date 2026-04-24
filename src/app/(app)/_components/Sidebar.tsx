@@ -21,6 +21,7 @@ export function Sidebar({
     dashboard: string;
     vehicles: string;
     trips: string;
+    reports: string;
     settings: string;
     admin: string;
     fleet: string;
@@ -45,6 +46,11 @@ export function Sidebar({
       href: "/trips",
       label: labels.trips,
       match: (p) => p.startsWith("/trips"),
+    },
+    {
+      href: "/reports",
+      label: labels.reports,
+      match: (p) => p.startsWith("/reports"),
     },
     {
       href: "/settings",

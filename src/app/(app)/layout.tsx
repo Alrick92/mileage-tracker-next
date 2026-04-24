@@ -20,6 +20,7 @@ export default async function AppLayout({
           dashboard: t("nav.dashboard"),
           vehicles: t("nav.vehicles"),
           trips: t("nav.trips"),
+          reports: t("nav.reports"),
           settings: t("nav.settings"),
           admin: t("nav.admin"),
           fleet: t("nav.fleet"),
