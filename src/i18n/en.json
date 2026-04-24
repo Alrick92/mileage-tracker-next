@@ -5,6 +5,7 @@
   "nav.dashboard": "Dashboard",
   "nav.vehicles": "Vehicles",
   "nav.trips": "Trips",
+  "nav.reports": "Reports",
   "nav.settings": "Settings",
   "nav.admin": "Users",
   "nav.fleet": "Fleet",
@@ -278,5 +279,29 @@
   "audit.action.VEHICLE_CREATED": "Vehicle created",
   "audit.action.VEHICLE_UPDATED": "Vehicle modified",
   "audit.action.TRIP_CREATED": "Mileage added",
-  "audit.action.TRIP_UPDATED": "Mileage modified"
+  "audit.action.TRIP_UPDATED": "Mileage modified",
+
+  "reports.title": "Reports",
+  "reports.subtitle": "Export mileage as PDF for any date range. Distances are shown in {unit}.",
+  "reports.from": "From",
+  "reports.to": "To",
+  "reports.vehicle": "Vehicle",
+  "reports.vehicleAll": "All my vehicles",
+  "reports.vehicleHelp": "Leave this set to \"All my vehicles\" to get one PDF with a section per vehicle, or pick a single vehicle to narrow the report.",
+  "reports.download": "Download PDF",
+  "reports.noVehicles": "You have no vehicles assigned yet. Add or request a vehicle before generating a report.",
+
+  "reports.pdf.title": "Mileage report",
+  "reports.pdf.generatedOn": "Generated",
+  "reports.pdf.driver": "Driver",
+  "reports.pdf.range": "Date range",
+  "reports.pdf.col.date": "Date",
+  "reports.pdf.col.driver": "Driver",
+  "reports.pdf.col.start": "Start",
+  "reports.pdf.col.end": "End",
+  "reports.pdf.col.distance": "Distance",
+  "reports.pdf.col.notes": "Notes",
+  "reports.pdf.emptySection": "No trips in the selected range.",
+  "reports.pdf.subtotal": "Subtotal: {count} trip(s) · {distance}",
+  "reports.pdf.grandTotal": "Total: {count} trip(s) · {distance}"
 }
