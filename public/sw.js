@@ -75,24 +75,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation requests: try network, fall back to offline page.
+  // Navigation requests: try the network, then fall back to the offline page.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .then((networkResponse) => {
-          if (
-            networkResponse &&
-            networkResponse.status === 200 &&
-            networkResponse.type === "basic"
-          ) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, clone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => caches.match(OFFLINE_PAGE))
+      fetch(request).catch(() => caches.match(OFFLINE_PAGE))
     );
     return;
   }
