@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   title: "Mileage Tracker",
   description: "Multi-user vehicle fleet mileage tracker",
   applicationName: "Mileage Tracker",
-  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Mileage Tracker",
