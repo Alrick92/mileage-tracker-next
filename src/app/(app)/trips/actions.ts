@@ -103,6 +103,9 @@ export async function createTripAction(
       });
     }
 
+    // Summary is unit-agnostic. Distances are written to `details` in the
+    // canonical km and converted to the viewer's unit at render time so the
+    // audit log honors each admin's km/mi preference.
     await writeAuditLog(
       {
         actorId: user.id,
@@ -115,7 +118,7 @@ export async function createTripAction(
           vehicle.licensePlate
             ? `${vehicle.name} (${vehicle.licensePlate})`
             : vehicle.name
-        } · ${startOdometerKm}→${endOdometerKm} km`,
+        }`,
         details: {
           vehicleId: vehicle.id,
           startOdometerKm,
@@ -158,7 +161,15 @@ export async function updateTripAction(
 
   const existing = await prisma.trip.findFirst({
     where: { id: tripId, userId: user.id },
-    select: { id: true, vehicleId: true },
+    select: {
+      id: true,
+      vehicleId: true,
+      driverName: true,
+      date: true,
+      startOdometer: true,
+      endOdometer: true,
+      notes: true,
+    },
   });
   if (!existing) {
     return { error: "Trip not found." };
@@ -203,6 +214,20 @@ export async function updateTripAction(
       },
       select: { id: true, date: true },
     });
+    // Compute exactly which fields the admin changed so the audit label can
+    // reflect intent (e.g. notes-only edits are not displayed as "mileage
+    // modified"). Compare against the DB state captured before the update.
+    const newDate = new Date(parsed.data.date);
+    const changed: string[] = [];
+    if (existing.vehicleId !== vehicle.id) changed.push("vehicle");
+    if (existing.driverName !== parsed.data.driverName) changed.push("driver");
+    if (existing.date.getTime() !== newDate.getTime()) changed.push("date");
+    if (existing.startOdometer !== startOdometerKm)
+      changed.push("startOdometer");
+    if (existing.endOdometer !== endOdometerKm) changed.push("endOdometer");
+    if ((existing.notes ?? null) !== (parsed.data.notes ?? null))
+      changed.push("notes");
+
     await writeAuditLog(
       {
         actorId: user.id,
@@ -215,11 +240,14 @@ export async function updateTripAction(
           vehicle.licensePlate
             ? `${vehicle.name} (${vehicle.licensePlate})`
             : vehicle.name
-        } · ${startOdometerKm}→${endOdometerKm} km`,
+        }`,
         details: {
           vehicleId: vehicle.id,
           previousVehicleId: existing.vehicleId,
+          changed,
+          prevStartOdometerKm: existing.startOdometer,
           startOdometerKm,
+          prevEndOdometerKm: existing.endOdometer,
           endOdometerKm,
         },
       },
