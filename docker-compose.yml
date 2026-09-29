@@ -18,9 +18,8 @@ services:
       retries: 10
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/alrick92/mileage-tracker-next:latest
+    pull_policy: always
     container_name: mileage-tracker-app
     restart: unless-stopped
     depends_on:
