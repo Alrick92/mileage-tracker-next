@@ -9,7 +9,9 @@ RUN npm ci
 COPY prisma ./prisma
 RUN npx prisma generate
 
-COPY . .
+COPY src ./src
+COPY public ./public
+COPY eslint.config.mjs next.config.ts postcss.config.mjs tsconfig.json ./
 RUN npm run build
 
 
