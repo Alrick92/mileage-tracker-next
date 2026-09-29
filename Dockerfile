@@ -12,8 +12,6 @@ RUN npx prisma generate
 COPY src ./src
 COPY public ./public
 COPY eslint.config.mjs next.config.ts postcss.config.mjs tsconfig.json ./
-# Keeps the build within a 2 GB host; without it the kernel OOM-kills the build.
-ENV NODE_OPTIONS=--max-old-space-size=1024
 RUN npm run build
 
 
