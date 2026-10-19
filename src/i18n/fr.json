@@ -278,5 +278,18 @@
   "audit.action.VEHICLE_CREATED": "Véhicule créé",
   "audit.action.VEHICLE_UPDATED": "Véhicule modifié",
   "audit.action.TRIP_CREATED": "Trajet ajouté",
-  "audit.action.TRIP_UPDATED": "Trajet modifié"
+  "audit.action.TRIP_UPDATED": "Trajet modifié",
+  "audit.action.TRIP_UPDATED.odometer": "Kilométrage modifié",
+  "audit.action.TRIP_UPDATED.notes": "Notes du trajet mises à jour",
+  "audit.action.TRIP_UPDATED.other": "Trajet modifié",
+  "audit.detail.odometer": "Odomètre : {start}→{end}",
+  "audit.detail.odometerChanged": "Odomètre : {prevStart}→{prevEnd} ⇒ {start}→{end}",
+  "audit.detail.initialOdometer": "Odomètre initial : {value}",
+  "audit.detail.changedFields": "Modifié : {fields}",
+  "audit.field.vehicle": "véhicule",
+  "audit.field.driver": "conducteur",
+  "audit.field.date": "date",
+  "audit.field.startOdometer": "odomètre de départ",
+  "audit.field.endOdometer": "odomètre d'arrivée",
+  "audit.field.notes": "notes"
 }

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { localeTag, translator } from "@/lib/i18n";
+import { localeTag, translator, type Locale } from "@/lib/i18n";
 import {
   DEFAULT_PAGE_SIZE,
   computeSkip,
@@ -8,6 +8,7 @@ import {
   parsePage,
 } from "@/lib/pagination";
 import { Pagination } from "@/app/(app)/_components/Pagination";
+import { formatOdometer, type Unit } from "@/lib/units";
 
 export const metadata = {
   title: "Audit log · Mileage Tracker",
@@ -16,6 +17,111 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ page?: string }>;
+
+type AuditDetails = {
+  vehicleId?: string;
+  previousVehicleId?: string;
+  startOdometerKm?: number;
+  endOdometerKm?: number;
+  prevStartOdometerKm?: number;
+  prevEndOdometerKm?: number;
+  initialOdometerKm?: number;
+  changed?: string[];
+  change?: string;
+  source?: string;
+};
+
+/**
+ * Pick the display label for an audit row. For trip updates, the label is
+ * specialized based on what the user actually changed so that notes-only
+ * edits are not shown as "mileage modified".
+ */
+function actionLabel(
+  action: string,
+  details: AuditDetails,
+  t: (key: string) => string,
+): string {
+  if (action === "TRIP_UPDATED") {
+    const changed = new Set(details.changed ?? []);
+    const hasOdometer =
+      changed.has("startOdometer") || changed.has("endOdometer");
+    const hasNotes = changed.has("notes");
+    if (hasOdometer) return t("audit.action.TRIP_UPDATED.odometer");
+    if (hasNotes && changed.size === 1)
+      return t("audit.action.TRIP_UPDATED.notes");
+    return t("audit.action.TRIP_UPDATED.other");
+  }
+  return t(`audit.action.${action}`);
+}
+
+/**
+ * Render the distance details line for a log row, converting the stored km
+ * values into the viewer's preferred unit + locale.
+ */
+function detailsLine(
+  action: string,
+  details: AuditDetails,
+  unit: Unit,
+  locale: Locale,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string | null {
+  if (action === "TRIP_CREATED") {
+    if (
+      typeof details.startOdometerKm === "number" &&
+      typeof details.endOdometerKm === "number"
+    ) {
+      return t("audit.detail.odometer", {
+        start: formatOdometer(details.startOdometerKm, unit, locale),
+        end: formatOdometer(details.endOdometerKm, unit, locale),
+      });
+    }
+    return null;
+  }
+  if (action === "TRIP_UPDATED") {
+    const changed = new Set(details.changed ?? []);
+    const odometerChanged =
+      changed.has("startOdometer") || changed.has("endOdometer");
+    if (
+      odometerChanged &&
+      typeof details.prevStartOdometerKm === "number" &&
+      typeof details.prevEndOdometerKm === "number" &&
+      typeof details.startOdometerKm === "number" &&
+      typeof details.endOdometerKm === "number"
+    ) {
+      return t("audit.detail.odometerChanged", {
+        prevStart: formatOdometer(details.prevStartOdometerKm, unit, locale),
+        prevEnd: formatOdometer(details.prevEndOdometerKm, unit, locale),
+        start: formatOdometer(details.startOdometerKm, unit, locale),
+        end: formatOdometer(details.endOdometerKm, unit, locale),
+      });
+    }
+    // The action label already conveys a notes-only edit; only render a
+    // "Updated: …" line when non-odometer, non-notes fields changed so the
+    // detail column adds information instead of repeating the label.
+    const otherChanges = [...changed].filter(
+      (f) => f !== "notes" && f !== "startOdometer" && f !== "endOdometer",
+    );
+    if (otherChanges.length > 0) {
+      const names = otherChanges
+        .map((f) => t(`audit.field.${f}`))
+        .filter((s) => !s.startsWith("audit.field."));
+      if (names.length > 0) {
+        return t("audit.detail.changedFields", { fields: names.join(", ") });
+      }
+    }
+    return null;
+  }
+  if (
+    action === "VEHICLE_CREATED" &&
+    typeof details.initialOdometerKm === "number" &&
+    details.initialOdometerKm > 0
+  ) {
+    return t("audit.detail.initialOdometer", {
+      value: formatOdometer(details.initialOdometerKm, unit, locale),
+    });
+  }
+  return null;
+}
 
 export default async function AdminAuditPage({
   searchParams,
@@ -42,6 +148,7 @@ export default async function AdminAuditPage({
       entityType: true,
       entityId: true,
       summary: true,
+      details: true,
       actor: { select: { email: true, name: true } },
     },
     skip: computeSkip(page),
@@ -53,6 +160,7 @@ export default async function AdminAuditPage({
     dateStyle: "medium",
     timeStyle: "short",
   });
+  const unit = admin.unit as Unit;
 
   return (
     <div className="space-y-6">
@@ -98,6 +206,16 @@ export default async function AdminAuditPage({
                       log.actorName ??
                       (log.actorId ? t("audit.actor.deleted") : t("audit.actor.system"));
                     const actorEmail = log.actor?.email ?? log.actorEmail;
+                    const details =
+                      (log.details as AuditDetails | null) ?? {};
+                    const label = actionLabel(log.action, details, t);
+                    const extra = detailsLine(
+                      log.action,
+                      details,
+                      unit,
+                      admin.locale,
+                      t,
+                    );
                     return (
                       <tr key={log.id} className="hover:bg-zinc-50">
                         <td className="px-4 py-3 font-mono text-xs text-zinc-600">
@@ -115,11 +233,16 @@ export default async function AdminAuditPage({
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-zinc-700">
-                            {t(`audit.action.${log.action}`)}
+                            {label}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-zinc-700">
-                          {log.summary}
+                          <div>{log.summary}</div>
+                          {extra ? (
+                            <div className="mt-0.5 text-xs text-zinc-500">
+                              {extra}
+                            </div>
+                          ) : null}
                         </td>
                       </tr>
                     );

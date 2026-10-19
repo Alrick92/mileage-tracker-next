@@ -278,5 +278,18 @@
   "audit.action.VEHICLE_CREATED": "Vehicle created",
   "audit.action.VEHICLE_UPDATED": "Vehicle modified",
   "audit.action.TRIP_CREATED": "Mileage added",
-  "audit.action.TRIP_UPDATED": "Mileage modified"
+  "audit.action.TRIP_UPDATED": "Trip modified",
+  "audit.action.TRIP_UPDATED.odometer": "Mileage modified",
+  "audit.action.TRIP_UPDATED.notes": "Trip notes updated",
+  "audit.action.TRIP_UPDATED.other": "Trip modified",
+  "audit.detail.odometer": "Odometer: {start}→{end}",
+  "audit.detail.odometerChanged": "Odometer: {prevStart}→{prevEnd} ⇒ {start}→{end}",
+  "audit.detail.initialOdometer": "Initial odometer: {value}",
+  "audit.detail.changedFields": "Updated: {fields}",
+  "audit.field.vehicle": "vehicle",
+  "audit.field.driver": "driver",
+  "audit.field.date": "date",
+  "audit.field.startOdometer": "start odometer",
+  "audit.field.endOdometer": "end odometer",
+  "audit.field.notes": "notes"
 }

@@ -222,7 +222,9 @@ export async function importTripsAction(
           action: "TRIP_CREATED",
           entityType: "Trip",
           entityId: trip.id,
-          summary: `${trip.date.toISOString().slice(0, 10)} · ${vehicleLabel} · ${row.startOdometerKm}→${row.endOdometerKm} km`,
+          // Summary is unit-agnostic; distances go in `details` so the audit
+          // log renders in the viewer's km/mi preference.
+          summary: `${trip.date.toISOString().slice(0, 10)} · ${vehicleLabel}`,
           details: {
             vehicleId: vehicle.id,
             startOdometerKm: row.startOdometerKm,
