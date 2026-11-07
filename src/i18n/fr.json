@@ -170,6 +170,7 @@
   "settings.profile.heading": "Profil",
   "settings.profile.name": "Nom",
   "settings.profile.email": "E-mail",
+  "settings.preferences.heading": "Préférences",
   "settings.save": "Enregistrer les paramètres",
   "settings.saved": "Paramètres mis à jour.",
   "settings.password.link": "Changer le mot de passe",
