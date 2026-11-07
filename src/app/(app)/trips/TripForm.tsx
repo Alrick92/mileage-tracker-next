@@ -9,7 +9,7 @@ import {
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 
-import { AlertIcon, CarIcon, CheckIcon } from "@/components/icons";
+import { AlertIcon } from "@/components/icons";
 import { buttonStyles, inputStyles } from "@/components/ui";
 
 import {
@@ -17,11 +17,16 @@ import {
   updateTripAction,
   type TripFormState,
 } from "./actions";
+import { VehiclePicker, type VehiclePickerLabels } from "./VehiclePicker";
 
 export type TripFormVehicle = {
   id: string;
   name: string;
   licensePlate: string | null;
+  /** "2022 Ford Transit", used for display and search. */
+  description: string | null;
+  /** Epoch ms of this user's most recent trip on the vehicle, if any. */
+  lastUsedAt: number | null;
   currentOdometerDisplay: string;
   // Default start odometer in the user's unit, taken from the most recent
   // trip's end odometer (or the vehicle's current odometer if no trips).
@@ -30,13 +35,8 @@ export type TripFormVehicle = {
 
 const initialState: TripFormState = {};
 
-/** Above this many vehicles the picker falls back to a compact <select>. */
-const MAX_VEHICLE_CARDS = 6;
-
 export type TripFormLabels = {
-  vehicle: string;
-  vehicleSelect: string;
-  vehicleOptionLast: string;
+  vehiclePicker: VehiclePickerLabels;
   date: string;
   today: string;
   yesterday: string;
@@ -203,7 +203,6 @@ export function TripForm({
     setPickedDate(value);
   }
 
-  const useCards = vehicles.length <= MAX_VEHICLE_CARDS;
   const distanceSummary =
     distance !== null && distance >= 0
       ? `${distance.toLocaleString(labels.numberLocale)} ${labels.distanceUnit}`
@@ -215,79 +214,12 @@ export function TripForm({
         <input type="hidden" name="tripId" value={initialValues.tripId} />
       ) : null}
 
-      {/* Vehicle */}
-      {useCards ? (
-        <fieldset>
-          <legend className="text-sm font-medium text-zinc-800">
-            {labels.vehicle}
-            <Required />
-          </legend>
-          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {vehicles.map((v) => (
-              <label
-                key={v.id}
-                className="group relative flex cursor-pointer items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-3.5 transition select-none active:scale-[0.99] has-checked:border-zinc-900 has-checked:bg-zinc-50 has-checked:ring-1 has-checked:ring-zinc-900 has-focus-visible:ring-2 has-focus-visible:ring-zinc-900/40"
-              >
-                <input
-                  type="radio"
-                  name="vehicleId"
-                  value={v.id}
-                  required
-                  checked={vehicleId === v.id}
-                  onChange={() => onVehicleChange(v.id)}
-                  className="sr-only"
-                />
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 transition group-has-checked:bg-zinc-900 group-has-checked:text-white">
-                  <CarIcon />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-zinc-900">
-                    {v.name}
-                  </span>
-                  <span className="block truncate text-xs text-zinc-500">
-                    {v.licensePlate ? (
-                      <span className="font-mono">{v.licensePlate} · </span>
-                    ) : null}
-                    {labels.vehicleOptionLast}{" "}
-                    <span className="font-mono">{v.currentOdometerDisplay}</span>
-                  </span>
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-zinc-300 text-transparent transition group-has-checked:border-zinc-900 group-has-checked:bg-zinc-900 group-has-checked:text-white"
-                >
-                  <CheckIcon width={14} height={14} strokeWidth={2.6} />
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ) : (
-        <div>
-          <FieldLabel htmlFor="vehicleId" required>
-            {labels.vehicle}
-          </FieldLabel>
-          <select
-            id="vehicleId"
-            name="vehicleId"
-            required
-            value={vehicleId}
-            onChange={(e) => onVehicleChange(e.target.value)}
-            className={inputStyles}
-          >
-            <option value="" disabled>
-              {labels.vehicleSelect}
-            </option>
-            {vehicles.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-                {v.licensePlate ? ` (${v.licensePlate})` : ""} ·{" "}
-                {labels.vehicleOptionLast} {v.currentOdometerDisplay}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      <VehiclePicker
+        vehicles={vehicles}
+        value={vehicleId}
+        onChange={onVehicleChange}
+        labels={labels.vehiclePicker}
+      />
 
       {/* Odometer */}
       <div className="space-y-4 rounded-2xl bg-zinc-50 p-4 ring-1 ring-zinc-200/70 sm:p-5">
