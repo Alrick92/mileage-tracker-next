@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { buttonStyles, inputStyles } from "@/components/ui";
+
 import { loginAction, type LoginState } from "./actions";
 
 const initialState: LoginState = {};
@@ -13,7 +15,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-60"
+      className={`${buttonStyles.primary} min-h-12 w-full text-base md:min-h-11 md:text-sm`}
     >
       {pending ? "Signing in…" : "Sign in"}
     </button>
@@ -27,7 +29,7 @@ export function LoginForm() {
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-zinc-700"
+          className="block text-sm font-medium text-zinc-800"
         >
           Email
         </label>
@@ -37,13 +39,13 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           required
-          className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          className={inputStyles}
         />
       </div>
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-zinc-700"
+          className="block text-sm font-medium text-zinc-800"
         >
           Password
         </label>
@@ -53,15 +55,16 @@ export function LoginForm() {
           type="password"
           autoComplete="current-password"
           required
-          className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          className={inputStyles}
         />
       </div>
       {state.error ? (
         <p
+          role="alert"
           className={
             state.pending
-              ? "rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
-              : "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              ? "rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-800"
+              : "rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700"
           }
         >
           {state.error}

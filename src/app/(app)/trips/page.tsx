@@ -3,19 +3,23 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { localeTag, translator } from "@/lib/i18n";
-import {
-  formatDistance,
-  formatOdometerNumber,
-  unitShort,
-} from "@/lib/units";
+import { formatDistance } from "@/lib/units";
 import {
   DEFAULT_PAGE_SIZE,
   computeSkip,
   computeTotalPages,
   parsePage,
 } from "@/lib/pagination";
-import { Pagination } from "@/app/(app)/_components/Pagination";
+import {
+  DownloadIcon,
+  PlusIcon,
+  RouteIcon,
+  UploadIcon,
+} from "@/components/icons";
+import { EmptyState, PageHeader, StatCard, buttonStyles } from "@/components/ui";
+import { Pagination, paginationLabels } from "@/app/(app)/_components/Pagination";
 import { Toast } from "@/app/(app)/_components/Toast";
+import { TripList } from "@/app/(app)/_components/TripList";
 
 export const metadata = {
   title: "Trips · Mileage Tracker",
@@ -31,10 +35,6 @@ type SearchParams = Promise<{
   page?: string;
 }>;
 
-function formatDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
 export default async function TripsPage({
   searchParams,
 }: {
@@ -42,8 +42,7 @@ export default async function TripsPage({
 }) {
   const user = await requireUser();
   const t = translator(user.locale);
-  const unit = user.unit;
-  const locale = user.locale;
+  const { unit, locale } = user;
   const params = await searchParams;
 
   const [total, distanceAgg] = await Promise.all([
@@ -62,7 +61,7 @@ export default async function TripsPage({
     where: { userId: user.id },
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
     include: {
-      vehicle: { select: { id: true, name: true, licensePlate: true } },
+      vehicle: { select: { name: true, licensePlate: true } },
     },
     skip: computeSkip(page),
     take: DEFAULT_PAGE_SIZE,
@@ -81,197 +80,72 @@ export default async function TripsPage({
       {params.deleted ? (
         <Toast variant="success" message={t("toast.tripDeleted")} />
       ) : null}
-      {params.error ? (
-        <Toast variant="error" message={params.error} />
-      ) : null}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("trips.title")}
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">{t("trips.subtitle")}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <a
-            href="/api/trips/export"
-            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-          >
-            {t("trips.exportCsv")}
-          </a>
-          <Link
-            href="/trips/import"
-            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-          >
-            {t("trips.importCsv")}
-          </Link>
-          <Link
-            href="/trips/new"
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            {t("trips.logTrip")}
-          </Link>
-        </div>
-      </header>
+      {params.error ? <Toast variant="error" message={params.error} /> : null}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SummaryCard
+      <PageHeader
+        title={t("trips.title")}
+        subtitle={t("trips.subtitle")}
+        actions={
+          <>
+            <a href="/api/trips/export" className={buttonStyles.secondary}>
+              <DownloadIcon width={16} height={16} />
+              {t("trips.exportCsv")}
+            </a>
+            <Link href="/trips/import" className={buttonStyles.secondary}>
+              <UploadIcon width={16} height={16} />
+              {t("trips.importCsv")}
+            </Link>
+            {/* On mobile the tab bar's centre button logs a trip. */}
+            <Link
+              href="/trips/new"
+              className={`${buttonStyles.primary} max-md:hidden`}
+            >
+              <PlusIcon width={16} height={16} />
+              {t("trips.logTrip")}
+            </Link>
+          </>
+        }
+      />
+
+      <section className="grid grid-cols-2 gap-3 md:gap-4">
+        <StatCard
           label={t("trips.summary.shown")}
           value={total.toLocaleString(tag)}
         />
-        <SummaryCard
+        <StatCard
           label={t("trips.summary.distance")}
           value={formatDistance(totalDistanceKm, unit, locale)}
         />
       </section>
 
       {total === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-          <p className="text-sm font-medium text-zinc-900">
-            {t("trips.empty.title")}
-          </p>
-          <p className="mt-1 text-sm text-zinc-500">
-            {t("trips.empty.subtitle")}
-          </p>
-          <Link
-            href="/trips/new"
-            className="mt-4 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            {t("trips.empty.cta")}
-          </Link>
-        </div>
+        <EmptyState
+          icon={<RouteIcon width={24} height={24} />}
+          title={t("trips.empty.title")}
+          subtitle={t("trips.empty.subtitle")}
+          action={
+            <Link href="/trips/new" className={buttonStyles.primary}>
+              <PlusIcon width={16} height={16} />
+              {t("trips.empty.cta")}
+            </Link>
+          }
+        />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">
-                    {t("trips.col.date")}
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    {t("trips.col.vehicle")}
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    {t("trips.col.driver")}
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium">
-                    {t("trips.col.start")}
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium">
-                    {t("trips.col.end")}
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium">
-                    {t("trips.col.distance")} ({unitShort(unit, locale)})
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    {t("trips.col.notes")}
-                  </th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {trips.map((trip) => (
-                  <tr key={trip.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-700">
-                      {formatDate(trip.date)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-zinc-900">
-                        {trip.vehicle.name}
-                      </div>
-                      {trip.vehicle.licensePlate ? (
-                        <div className="font-mono text-xs text-zinc-500">
-                          {trip.vehicle.licensePlate}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {trip.driverName}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-zinc-700">
-                      {formatOdometerNumber(trip.startOdometer, unit, locale)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-zinc-700">
-                      {formatOdometerNumber(trip.endOdometer, unit, locale)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-medium text-zinc-900">
-                      {formatDistance(
-                        trip.endOdometer - trip.startOdometer,
-                        unit,
-                        locale,
-                      )}
-                    </td>
-                    <td className="max-w-[220px] px-4 py-3 text-zinc-600">
-                      {trip.notes ? (
-                        <span
-                          className="block truncate"
-                          title={trip.notes}
-                        >
-                          {trip.notes}
-                        </span>
-                      ) : (
-                        <span className="text-zinc-300">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <Link
-                          href={`/trips/${trip.id}`}
-                          className="text-xs font-medium text-zinc-700 underline-offset-4 hover:underline"
-                        >
-                          {t("common.view")}
-                        </Link>
-                        <Link
-                          href={`/trips/${trip.id}/edit`}
-                          className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
-                        >
-                          {t("common.edit")}
-                        </Link>
-                        <Link
-                          href={`/trips/${trip.id}/delete`}
-                          className="text-xs font-medium text-red-600 underline-offset-4 hover:underline"
-                        >
-                          {t("common.delete")}
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            total={total}
-            basePath="/trips"
-            labels={{
-              previous: t("pagination.previous"),
-              next: t("pagination.next"),
-              pageOfTotal: t("pagination.pageOfTotal", {
-                page: page.toLocaleString(tag),
-                total: totalPages.toLocaleString(tag),
-              }),
-              totalItems: t("pagination.totalItems", {
-                count: total.toLocaleString(tag),
-              }),
-            }}
-          />
-        </div>
+        <TripList
+          trips={trips}
+          unit={unit}
+          locale={locale}
+          footer={
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              basePath="/trips"
+              labels={paginationLabels(locale, page, totalPages, total)}
+            />
+          }
+        />
       )}
-    </div>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-        {label}
-      </p>
-      <p className="mt-2 font-mono text-2xl font-semibold text-zinc-900">
-        {value}
-      </p>
     </div>
   );
 }

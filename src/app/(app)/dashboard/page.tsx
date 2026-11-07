@@ -10,13 +10,25 @@ import {
   computeTotalPages,
   parsePage,
 } from "@/lib/pagination";
-import { Pagination } from "@/app/(app)/_components/Pagination";
+import { CarIcon, ChevronRightIcon, PlusIcon } from "@/components/icons";
+import {
+  EmptyState,
+  PageHeader,
+  SectionHeading,
+  StatCard,
+  buttonStyles,
+} from "@/components/ui";
+import { Pagination, paginationLabels } from "@/app/(app)/_components/Pagination";
+import { TripList } from "@/app/(app)/_components/TripList";
+import { VehicleList } from "@/app/(app)/_components/VehicleList";
 
 export const metadata = {
   title: "Dashboard · Mileage Tracker",
 };
 
 export const dynamic = "force-dynamic";
+
+const RECENT_TRIPS = 5;
 
 type SearchParams = Promise<{ page?: string }>;
 
@@ -27,13 +39,14 @@ export default async function DashboardPage({
 }) {
   const user = await requireUser();
   const t = translator(user.locale);
+  const { unit, locale } = user;
   const { page: pageRaw } = await searchParams;
 
   const assignmentFilter = {
     assignments: { some: { userId: user.id } },
   } as const;
 
-  const [vehicleCount, tripCount, totalDistance, fleetOdometerRow] =
+  const [vehicleCount, tripCount, totalDistance, fleetOdometerRow, recentTrips] =
     await Promise.all([
       prisma.vehicle.count({ where: assignmentFilter }),
       prisma.trip.count({ where: { userId: user.id } }),
@@ -50,6 +63,12 @@ export default async function DashboardPage({
           WHERE va."vehicleId" = v."id" AND va."userId" = ${user.id}
         )
       `,
+      prisma.trip.findMany({
+        where: { userId: user.id },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        include: { vehicle: { select: { name: true, licensePlate: true } } },
+        take: RECENT_TRIPS,
+      }),
     ]);
 
   const totalPages = computeTotalPages(vehicleCount);
@@ -68,28 +87,53 @@ export default async function DashboardPage({
 
   const distanceTotalKm = Number(totalDistance[0]?.sum ?? 0);
   const fleetOdometerKm = Number(fleetOdometerRow[0]?.sum ?? 0);
-  const tag = localeTag(user.locale);
+  const tag = localeTag(locale);
+  const firstName = user.name.trim().split(/\s+/)[0] || user.name;
 
   return (
     <div className="space-y-8">
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("dashboard.title")}
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            {t("dashboard.subtitle")}
-          </p>
-        </div>
-        <Link
-          href="/vehicles/new"
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-        >
-          {t("dashboard.addVehicle")}
-        </Link>
-      </header>
+      <PageHeader
+        title={
+          <>
+            <span className="md:hidden">
+              {t("dashboard.greeting", { name: firstName })}
+            </span>
+            <span className="hidden md:inline">{t("dashboard.title")}</span>
+          </>
+        }
+        subtitle={t("dashboard.subtitle")}
+        actions={
+          <Link
+            href="/vehicles/new"
+            className={`${buttonStyles.secondary} max-md:hidden`}
+          >
+            <CarIcon width={16} height={16} />
+            {t("dashboard.addVehicle")}
+          </Link>
+        }
+      />
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {vehicleCount > 0 ? (
+        <Link
+          href="/trips/new"
+          className="group flex items-center gap-4 rounded-2xl bg-zinc-900 p-4 text-white shadow-lg shadow-zinc-900/15 transition active:scale-[0.99] md:hidden"
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10">
+            <PlusIcon width={24} height={24} strokeWidth={2.2} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-base font-semibold">
+              {t("trips.logTrip")}
+            </span>
+            <span className="block truncate text-sm text-zinc-400">
+              {t("dashboard.quickLogHint")}
+            </span>
+          </span>
+          <ChevronRightIcon className="text-zinc-500 transition group-active:translate-x-0.5" />
+        </Link>
+      ) : null}
+
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4">
         <StatCard
           label={t("dashboard.stat.vehicles")}
           value={vehicleCount.toLocaleString(tag)}
@@ -100,147 +144,77 @@ export default async function DashboardPage({
         />
         <StatCard
           label={t("dashboard.stat.distance")}
-          value={formatDistance(distanceTotalKm, user.unit, user.locale)}
+          value={formatDistance(distanceTotalKm, unit, locale)}
+          className="col-span-2 sm:col-span-1"
         />
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-            {t("dashboard.vehiclesHeading")}
-          </h2>
-          <p className="text-xs text-zinc-500">
-            {t("dashboard.fleetOdometerTotal")}{" "}
-            <span className="font-mono text-zinc-900">
-              {formatOdometer(fleetOdometerKm, user.unit, user.locale)}
-            </span>
-          </p>
-        </div>
+        <SectionHeading
+          aside={
+            vehicleCount > 0 ? (
+              <p className="truncate text-xs text-zinc-500">
+                <span className="hidden sm:inline">
+                  {t("dashboard.fleetOdometerTotal")}{" "}
+                </span>
+                <span className="font-mono text-zinc-900">
+                  {formatOdometer(fleetOdometerKm, unit, locale)}
+                </span>
+              </p>
+            ) : null
+          }
+        >
+          {t("dashboard.vehiclesHeading")}
+        </SectionHeading>
 
         {vehicleCount === 0 ? (
-          <EmptyVehicles
+          <EmptyState
+            icon={<CarIcon width={24} height={24} />}
             title={t("dashboard.empty.title")}
             subtitle={t("dashboard.empty.subtitle")}
-            cta={t("dashboard.addVehicle")}
+            action={
+              <Link href="/vehicles/new" className={buttonStyles.primary}>
+                <PlusIcon width={16} height={16} />
+                {t("dashboard.addVehicle")}
+              </Link>
+            }
           />
         ) : (
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">
-                      {t("dashboard.col.vehicle")}
-                    </th>
-                    <th className="px-4 py-3 font-medium">
-                      {t("dashboard.col.plate")}
-                    </th>
-                    <th className="px-4 py-3 font-medium">
-                      {t("dashboard.col.trips")}
-                    </th>
-                    <th className="px-4 py-3 text-right font-medium">
-                      {t("dashboard.col.currentOdometer")}
-                    </th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {vehicles.map((v) => (
-                    <tr key={v.id} className="hover:bg-zinc-50">
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-zinc-900">
-                          {v.name}
-                        </div>
-                        {v.make || v.model ? (
-                          <div className="text-xs text-zinc-500">
-                            {[v.year, v.make, v.model]
-                              .filter(Boolean)
-                              .join(" ")}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-zinc-700">
-                        {v.licensePlate ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-zinc-700">
-                        {v._count.trips}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-zinc-900">
-                        {formatOdometer(
-                          v.currentOdometer,
-                          user.unit,
-                          user.locale,
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/vehicles/${v.id}`}
-                          className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
-                        >
-                          {t("common.view")}
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              total={vehicleCount}
-              basePath="/dashboard"
-              labels={{
-                previous: t("pagination.previous"),
-                next: t("pagination.next"),
-                pageOfTotal: t("pagination.pageOfTotal", {
-                  page: page.toLocaleString(tag),
-                  total: totalPages.toLocaleString(tag),
-                }),
-                totalItems: t("pagination.totalItems", {
-                  count: vehicleCount.toLocaleString(tag),
-                }),
-              }}
-            />
-          </div>
+          <VehicleList
+            vehicles={vehicles.map((v) => ({ ...v, tripCount: v._count.trips }))}
+            unit={unit}
+            locale={locale}
+            footer={
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={vehicleCount}
+                basePath="/dashboard"
+                labels={paginationLabels(locale, page, totalPages, vehicleCount)}
+              />
+            }
+          />
         )}
       </section>
-    </div>
-  );
-}
 
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-        {label}
-      </p>
-      <p className="mt-2 font-mono text-2xl font-semibold text-zinc-900">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function EmptyVehicles({
-  title,
-  subtitle,
-  cta,
-}: {
-  title: string;
-  subtitle: string;
-  cta: string;
-}) {
-  return (
-    <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-      <p className="text-sm font-medium text-zinc-900">{title}</p>
-      <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
-      <Link
-        href="/vehicles/new"
-        className="mt-4 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-      >
-        {cta}
-      </Link>
+      {recentTrips.length > 0 ? (
+        <section>
+          <SectionHeading
+            aside={
+              <Link
+                href="/trips"
+                className="inline-flex min-h-8 items-center gap-0.5 rounded-lg px-2 text-xs font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+              >
+                {t("dashboard.viewAllTrips")}
+                <ChevronRightIcon width={14} height={14} />
+              </Link>
+            }
+          >
+            {t("dashboard.recentTrips")}
+          </SectionHeading>
+          <TripList trips={recentTrips} unit={unit} locale={locale} />
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 
+import { buttonStyles, inputStyles } from "@/components/ui";
+
 import { createVehicleAction, type VehicleFormState } from "../actions";
 
 const initialState: VehicleFormState = {};
@@ -14,7 +16,7 @@ function Submit({ label, pendingLabel }: { label: string; pendingLabel: string }
     <button
       type="submit"
       disabled={pending}
-      className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+      className={`${buttonStyles.primary} min-h-12 flex-1 text-base md:min-h-10 md:flex-none md:text-sm`}
     >
       {pending ? pendingLabel : label}
     </button>
@@ -38,15 +40,27 @@ export function VehicleForm({ labels }: { labels: VehicleFormLabels }) {
   return (
     <form action={action} className="space-y-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field name="name" label={labels.name} required placeholder="Van A" />
-        <Field name="licensePlate" label={labels.licensePlate} placeholder="ABC-123" />
+        <Field name="name" label={labels.name} required placeholder="Van A" autoCapitalize="words" />
+        <Field
+          name="licensePlate"
+          label={labels.licensePlate}
+          placeholder="ABC-123"
+          autoCapitalize="characters"
+        />
         <Field name="make" label={labels.make} placeholder="Ford" />
         <Field name="model" label={labels.model} placeholder="Transit" />
-        <Field name="year" label={labels.year} type="number" placeholder="2022" />
+        <Field
+          name="year"
+          label={labels.year}
+          type="number"
+          inputMode="numeric"
+          placeholder="2022"
+        />
         <Field
           name="currentOdometer"
           label={labels.currentOdometer}
           type="number"
+          inputMode="numeric"
           min={0}
           step="1"
           placeholder="0"
@@ -54,18 +68,21 @@ export function VehicleForm({ labels }: { labels: VehicleFormLabels }) {
         />
       </div>
       {state.error ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700"
+        >
           {state.error}
         </p>
       ) : null}
-      <div className="flex items-center gap-3">
-        <Submit label={labels.save} pendingLabel={labels.saving} />
-        <Link
-          href="/vehicles"
-          className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
-        >
-          {labels.cancel}
-        </Link>
+      {/* Sticky on mobile so the save button stays within thumb reach. */}
+      <div className="pb-safe sticky bottom-0 z-10 -mx-4 -mb-4 rounded-b-2xl border-t border-zinc-200/70 bg-white/90 px-4 pt-3 backdrop-blur-xl sm:-mx-6 sm:-mb-6 sm:px-6 md:static md:m-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+        <div className="flex items-center gap-3 pb-3 md:pb-0">
+          <Link href="/vehicles" className={buttonStyles.ghost}>
+            {labels.cancel}
+          </Link>
+          <Submit label={labels.save} pendingLabel={labels.saving} />
+        </div>
       </div>
     </form>
   );
@@ -81,6 +98,8 @@ function Field({
   min,
   step,
   selectOnFocus,
+  inputMode,
+  autoCapitalize,
 }: {
   name: string;
   label: string;
@@ -91,15 +110,21 @@ function Field({
   min?: number;
   step?: string;
   selectOnFocus?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoCapitalize?: string;
 }) {
   return (
     <div>
       <label
         htmlFor={name}
-        className="block text-sm font-medium text-zinc-700"
+        className="block text-sm font-medium text-zinc-800"
       >
         {label}
-        {required ? <span className="ml-0.5 text-red-500">*</span> : null}
+        {required ? (
+          <span aria-hidden="true" className="ml-0.5 text-red-500">
+            *
+          </span>
+        ) : null}
       </label>
       <input
         id={name}
@@ -110,12 +135,15 @@ function Field({
         defaultValue={defaultValue}
         min={min}
         step={step}
+        inputMode={inputMode}
+        autoCapitalize={autoCapitalize}
+        autoComplete="off"
         onFocus={
           selectOnFocus
             ? (event) => event.currentTarget.select()
             : undefined
         }
-        className="mt-1 block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+        className={`${inputStyles} ${type === "number" ? "font-mono tabular-nums" : ""}`}
       />
     </div>
   );

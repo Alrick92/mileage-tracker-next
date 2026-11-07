@@ -3,8 +3,15 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { translator } from "@/lib/i18n";
-import { formatDistance, formatOdometerNumber } from "@/lib/units";
+import { localeTag, translator } from "@/lib/i18n";
+import { formatDistance, formatOdometerNumber, unitShort } from "@/lib/units";
+import { ChevronRightIcon, PencilIcon, TrashIcon } from "@/components/icons";
+import {
+  PageHeader,
+  SectionHeading,
+  buttonStyles,
+  cardStyles,
+} from "@/components/ui";
 import { Toast } from "@/app/(app)/_components/Toast";
 
 export const metadata = {
@@ -36,120 +43,108 @@ export default async function TripDetailPage({
   });
   if (!trip) notFound();
 
+  const { unit, locale } = user;
   const distanceKm = trip.endOdometer - trip.startOdometer;
+  const longDate = new Intl.DateTimeFormat(localeTag(locale), {
+    dateStyle: "full",
+    timeZone: "UTC",
+  }).format(trip.date);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-5 md:mx-0">
       {updated ? (
         <Toast variant="success" message={t("toast.tripUpdated")} />
       ) : null}
-      <div>
-        <Link
-          href="/trips"
-          className="text-xs font-medium text-zinc-500 hover:text-zinc-900"
-        >
-          ← {t("trips.title")}
-        </Link>
-        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {t("trip.detail.title")}
-            </h1>
-            <p className="mt-1 text-sm text-zinc-500">
-              {t("trip.detail.subtitle")}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+
+      <PageHeader
+        back={{ href: "/trips", label: t("trips.title") }}
+        title={t("trip.detail.title")}
+        subtitle={<span className="capitalize">{longDate}</span>}
+        actions={
+          <>
             <Link
               href={`/trips/${trip.id}/edit`}
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              className={`${buttonStyles.secondary} flex-1 sm:flex-none`}
             >
+              <PencilIcon width={16} height={16} />
               {t("common.edit")}
             </Link>
             <Link
               href={`/trips/${trip.id}/delete`}
-              className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+              className={`${buttonStyles.dangerOutline} flex-1 sm:flex-none`}
             >
+              <TrashIcon width={16} height={16} />
               {t("common.delete")}
             </Link>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <dl className="space-y-2 text-sm">
-          <Row
-            label={t("trips.col.date")}
-            value={trip.date.toISOString().slice(0, 10)}
-          />
+      <div className={`${cardStyles} overflow-hidden`}>
+        <div className="border-b border-zinc-100 bg-zinc-50/60 px-5 py-6 text-center sm:px-6">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            {t("trips.col.distance")}
+          </p>
+          <p className="mt-1 font-mono text-4xl font-semibold tracking-tight text-zinc-900">
+            {formatDistance(distanceKm, unit, locale)}
+          </p>
+          <p className="mt-2 inline-flex items-center gap-1.5 font-mono text-sm text-zinc-500">
+            {formatOdometerNumber(trip.startOdometer, unit, locale)}
+            <ChevronRightIcon width={14} height={14} className="text-zinc-300" />
+            {formatOdometerNumber(trip.endOdometer, unit, locale)}
+            <span className="text-zinc-400">{unitShort(unit, locale)}</span>
+          </p>
+        </div>
+        <dl className="divide-y divide-zinc-100 text-sm">
           <Row
             label={t("trips.col.vehicle")}
             value={
               <Link
                 href={`/vehicles/${trip.vehicle.id}`}
-                className="underline-offset-4 hover:underline"
+                className="font-medium text-zinc-900 underline-offset-4 hover:underline"
               >
                 {trip.vehicle.name}
-                {trip.vehicle.licensePlate
-                  ? ` (${trip.vehicle.licensePlate})`
-                  : ""}
+                {trip.vehicle.licensePlate ? (
+                  <span className="ml-1.5 font-mono text-xs text-zinc-500">
+                    {trip.vehicle.licensePlate}
+                  </span>
+                ) : null}
               </Link>
             }
           />
           <Row label={t("trips.col.driver")} value={trip.driverName} />
           <Row
-            label={t("trips.col.start")}
-            value={formatOdometerNumber(
-              trip.startOdometer,
-              user.unit,
-              user.locale,
-            )}
-          />
-          <Row
-            label={t("trips.col.end")}
-            value={formatOdometerNumber(
-              trip.endOdometer,
-              user.unit,
-              user.locale,
-            )}
-          />
-          <Row
-            label={t("trips.col.distance")}
-            value={formatDistance(distanceKm, user.unit, user.locale)}
+            label={t("trips.col.date")}
+            value={
+              <span className="font-mono">
+                {trip.date.toISOString().slice(0, 10)}
+              </span>
+            }
           />
         </dl>
       </div>
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
-          {t("trips.col.notes")}
-        </h2>
+      <section className={`${cardStyles} p-5 sm:p-6`}>
+        <SectionHeading>{t("trips.col.notes")}</SectionHeading>
         {trip.notes ? (
-          <p className="mt-3 whitespace-pre-wrap text-sm text-zinc-900">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap text-zinc-900">
             {trip.notes}
           </p>
         ) : (
-          <p className="mt-3 text-sm italic text-zinc-400">
+          <p className="text-sm text-zinc-400 italic">
             {t("trip.detail.notes.empty")}
           </p>
         )}
-      </div>
-
+      </section>
     </div>
   );
 }
 
-function Row({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-3 border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
+    <div className="flex items-center justify-between gap-4 px-5 py-3.5 sm:px-6">
       <dt className="text-zinc-500">{label}</dt>
-      <dd className="text-right font-mono text-zinc-900">{value}</dd>
+      <dd className="min-w-0 truncate text-right text-zinc-900">{value}</dd>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { translator } from "@/lib/i18n";
 import { formatDistance, formatOdometerNumber } from "@/lib/units";
+import { TrashIcon } from "@/components/icons";
+import { BackLink, buttonStyles } from "@/components/ui";
 
 import { deleteTripAction } from "../../actions";
 
@@ -31,13 +33,8 @@ export default async function DeleteTripPage({
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <Link
-        href="/trips"
-        className="text-xs font-medium text-zinc-500 hover:text-zinc-900"
-      >
-        ← {t("trips.title")}
-      </Link>
-      <div className="rounded-xl border border-red-200 bg-white p-6 shadow-sm">
+      <BackLink href={`/trips/${trip.id}`} label={t("trip.detail.title")} />
+      <div className="rounded-2xl border border-red-200 bg-white p-5 shadow-xs sm:p-6">
         <h1 className="text-xl font-semibold text-zinc-900">
           {t("trip.delete.title")}
         </h1>
@@ -45,7 +42,7 @@ export default async function DeleteTripPage({
           {t("trip.delete.subtitle")}
         </p>
 
-        <dl className="mt-4 space-y-2 rounded-lg bg-zinc-50 p-4 text-sm">
+        <dl className="mt-4 space-y-2.5 rounded-xl bg-zinc-50 p-4 text-sm">
           <Row
             label={t("trips.col.date")}
             value={trip.date.toISOString().slice(0, 10)}
@@ -79,20 +76,18 @@ export default async function DeleteTripPage({
           />
         </dl>
 
-        <form action={deleteTripAction} className="mt-6 flex items-center gap-3">
+        <form
+          action={deleteTripAction}
+          className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3"
+        >
           <input type="hidden" name="tripId" value={trip.id} />
-          <button
-            type="submit"
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-          >
-            {t("common.delete")}
-          </button>
-          <Link
-            href="/trips"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
-          >
+          <Link href={`/trips/${trip.id}`} className={buttonStyles.ghost}>
             {t("common.cancel")}
           </Link>
+          <button type="submit" className={`${buttonStyles.danger} sm:order-first`}>
+            <TrashIcon width={16} height={16} />
+            {t("common.delete")}
+          </button>
         </form>
       </div>
     </div>

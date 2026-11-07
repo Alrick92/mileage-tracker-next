@@ -2,14 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>Offline · Mileage Tracker</title>
-    <meta name="theme-color" content="#18181b" />
+    <meta name="theme-color" content="#ffffff" />
     <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
       html,
       body {
         height: 100%;
         margin: 0;
+      }
+      body {
         font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
           "Segoe UI", Roboto, sans-serif;
         background: #fafafa;
@@ -18,28 +28,90 @@
         align-items: center;
         justify-content: center;
         text-align: center;
+        padding: env(safe-area-inset-top) 1.5rem env(safe-area-inset-bottom);
+        -webkit-tap-highlight-color: transparent;
       }
       .box {
-        padding: 2rem;
-        max-width: 20rem;
+        max-width: 22rem;
+      }
+      .icon {
+        width: 4rem;
+        height: 4rem;
+        margin: 0 auto 1.25rem;
+        border-radius: 1.25rem;
+        background: #f4f4f5;
+        color: #71717a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       h1 {
         font-size: 1.25rem;
         font-weight: 600;
+        letter-spacing: -0.01em;
         margin: 0 0 0.5rem;
       }
       p {
         color: #52525b;
         margin: 0;
         font-size: 0.95rem;
-        line-height: 1.5;
+        line-height: 1.55;
+      }
+      button {
+        margin-top: 1.5rem;
+        min-height: 3rem;
+        padding: 0 1.5rem;
+        border: 0;
+        border-radius: 0.875rem;
+        background: #18181b;
+        color: #fff;
+        font: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      button:focus-visible {
+        outline: 2px solid #18181b;
+        outline-offset: 3px;
       }
     </style>
   </head>
   <body>
-    <div class="box">
-      <h1>You are offline</h1>
-      <p>Please connect to the internet to use Mileage Tracker.</p>
-    </div>
+    <main class="box">
+      <div class="icon" aria-hidden="true">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M2 2l20 20" />
+          <path d="M8.5 16.5a5 5 0 0 1 7 0" />
+          <path d="M2 8.82a15 15 0 0 1 4.17-2.65" />
+          <path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76" />
+          <path d="M16.85 11.25a10 10 0 0 1 2.22 1.68" />
+          <path d="M5 12.86a10 10 0 0 1 5.17-2.69" />
+          <path d="M12 20h.01" />
+        </svg>
+      </div>
+      <h1>You’re offline</h1>
+      <p>
+        Mileage Tracker needs a connection to load your trips. We’ll reconnect
+        automatically when you’re back online.
+      </p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+    <script>
+      window.addEventListener("online", function () {
+        location.reload();
+      });
+    </script>
   </body>
 </html>

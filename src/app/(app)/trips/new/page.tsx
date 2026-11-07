@@ -1,12 +1,12 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { translator } from "@/lib/i18n";
-import { formatOdometer, kmToUnit, unitShort } from "@/lib/units";
+import { PageHeader, cardStyles } from "@/components/ui";
 
-import { TripForm, type TripFormVehicle } from "../TripForm";
+import { TripForm } from "../TripForm";
+import { loadTripFormVehicles, tripFormLabels } from "../tripFormData";
 
 export const metadata = {
   title: "Log trip · Mileage Tracker",
@@ -23,82 +23,37 @@ export default async function NewTripPage({
 }) {
   const user = await requireUser();
   const t = translator(user.locale);
-  const unit = unitShort(user.unit, user.locale);
   const { vehicleId } = await searchParams;
 
-  const vehiclesRaw = await prisma.vehicle.findMany({
-    where: { assignments: { some: { userId: user.id } } },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      licensePlate: true,
-      currentOdometer: true,
-      // Pre-fill start odometer with the vehicle's most recent trip end across
-      // ALL assigned drivers (not just the current user's own trips) so shared
-      // vehicles stay in sync.
-      trips: {
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-        take: 1,
-        select: { endOdometer: true },
-      },
-    },
-  });
-
-  if (vehiclesRaw.length === 0) {
+  const [vehicles, lastTrip] = await Promise.all([
+    loadTripFormVehicles(user),
+    // Without an explicit ?vehicleId, default to the vehicle the user logged
+    // most recently: it's usually the one they're driving.
+    vehicleId
+      ? null
+      : prisma.trip.findFirst({
+          where: { userId: user.id },
+          orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+          select: { vehicleId: true },
+        }),
+  ]);
+  if (vehicles.length === 0) {
     redirect("/vehicles/new");
   }
 
-  const vehicles: TripFormVehicle[] = vehiclesRaw.map((v) => {
-    const lastEndKm = v.trips[0]?.endOdometer ?? v.currentOdometer;
-    return {
-      id: v.id,
-      name: v.name,
-      licensePlate: v.licensePlate,
-      currentOdometerDisplay: formatOdometer(
-        v.currentOdometer,
-        user.unit,
-        user.locale,
-      ),
-      defaultStartOdometer: Math.round(kmToUnit(lastEndKm, user.unit)),
-    };
-  });
-
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <Link
-          href="/trips"
-          className="text-xs font-medium text-zinc-500 hover:text-zinc-900"
-        >
-          ← {t("trips.title")}
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {t("trips.new.title")}
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">{t("trips.new.subtitle")}</p>
-      </div>
-      <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-6">
+    <div className="mx-auto max-w-2xl space-y-5 md:mx-0">
+      <PageHeader
+        back={{ href: "/trips", label: t("trips.title") }}
+        title={t("trips.new.title")}
+        subtitle={t("trips.new.subtitle")}
+      />
+      <div className={`${cardStyles} p-4 sm:p-6`}>
         <TripForm
           vehicles={vehicles}
-          defaultVehicleId={vehicleId}
+          defaultVehicleId={vehicleId ?? lastTrip?.vehicleId}
           defaultDriverName={user.name}
-          labels={{
-            vehicle: t("trips.form.vehicle"),
-            vehicleSelect: t("trips.form.vehicle.select"),
-            vehicleOptionLast: t("trips.form.vehicle.optionLast"),
-            date: t("trips.form.date"),
-            driver: t("trips.form.driver"),
-            startOdometer: t("trips.form.startOdometer", { unit }),
-            endOdometer: t("trips.form.endOdometer", { unit }),
-            startPrefillHelp: t("trips.form.startPrefillHelp"),
-            distance: t("trips.form.distance"),
-            distanceUnit: unit,
-            notes: t("trips.form.notes"),
-            save: t("trips.form.save"),
-            saving: t("common.saving"),
-            cancel: t("common.cancel"),
-          }}
+          labels={tripFormLabels(user, "trips.form.save")}
         />
       </div>
     </div>

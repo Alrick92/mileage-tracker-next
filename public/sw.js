@@ -1,4 +1,5 @@
-const CACHE_NAME = "mileage-tracker-v1";
+// Bump when precached assets (e.g. offline.html) change.
+const CACHE_NAME = "mileage-tracker-v2";
 const OFFLINE_PAGE = "/offline.html";
 
 const PRECACHE_ASSETS = [

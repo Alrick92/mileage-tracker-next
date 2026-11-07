@@ -21,8 +21,12 @@ export const metadata: Metadata = {
   applicationName: "Mileage Tracker",
   appleWebApp: {
     capable: true,
-    title: "Mileage Tracker",
+    title: "Mileage",
     statusBarStyle: "default",
+  },
+  formatDetection: {
+    // Odometer readings and plates shouldn't turn into tappable phone links.
+    telephone: false,
   },
   icons: {
     icon: "/favicon.ico",
@@ -31,10 +35,16 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#18181b",
+  // Matches the white app header so the status bar / PWA title bar blends in.
+  themeColor: "#ffffff",
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
+  // Let the app draw under the notch / home indicator; layout pads with
+  // env(safe-area-inset-*) where needed. Pinch-zoom stays enabled.
+  viewportFit: "cover",
+  // Keep the on-screen keyboard from covering focused inputs on Android.
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
@@ -47,7 +57,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-zinc-50 text-zinc-900">
+      <body className="min-h-dvh bg-zinc-50 text-zinc-900">
         {children}
         <ServiceWorkerRegistration />
       </body>

@@ -9,6 +9,11 @@
   "nav.admin": "Utilisateurs",
   "nav.fleet": "Flotte",
   "nav.audit": "Journal d'audit",
+  "nav.main": "Navigation principale",
+  "nav.more": "Plus",
+  "nav.logShort": "Saisir",
+  "nav.adminHeading": "Administration",
+  "nav.skipToContent": "Aller au contenu",
 
   "topbar.signedInAs": "Connecté en tant que",
   "topbar.signOut": "Se déconnecter",
@@ -30,6 +35,7 @@
   "common.miles": "Milles",
   "common.yes": "Oui",
   "common.no": "Non",
+  "common.close": "Fermer",
 
   "pagination.previous": "Précédent",
   "pagination.next": "Suivant",
@@ -63,6 +69,10 @@
   "dashboard.col.plate": "Plaque",
   "dashboard.col.trips": "Trajets",
   "dashboard.col.currentOdometer": "Odomètre actuel",
+  "dashboard.greeting": "Bonjour, {name}",
+  "dashboard.quickLogHint": "Enregistrez un trajet en quelques gestes",
+  "dashboard.recentTrips": "Trajets récents",
+  "dashboard.viewAllTrips": "Tout voir",
 
   "vehicles.title": "Véhicules",
   "vehicles.subtitle": "Gérez votre flotte et les relevés d'odomètre.",
@@ -115,6 +125,12 @@
   "trips.form.distance": "Distance",
   "trips.form.notes": "Notes",
   "trips.form.save": "Enregistrer le trajet",
+  "trips.form.today": "Aujourd’hui",
+  "trips.form.yesterday": "Hier",
+  "trips.form.distanceField": "Distance du trajet ({unit})",
+  "trips.form.distanceHelp": "ou saisissez la distance",
+  "trips.form.endBeforeStart": "Le relevé de fin ne peut pas être inférieur au relevé de départ.",
+  "trips.form.notesPlaceholder": "Motif, destination, client…",
 
   "trips.edit.title": "Modifier le trajet",
   "trips.edit.subtitle": "Mettez à jour les détails du trajet. Les odomètres et le véhicule sont synchronisés avec le relevé actuel.",
@@ -236,6 +252,7 @@
   "admin.assignments.toast.unassigned": "Conducteur retiré.",
 
   "vehicles.sharedBadge": "Partagé",
+  "vehicles.tripCount": "{count} trajet(s)",
   "vehicle.drivers.heading": "Conducteurs",
   "vehicle.drivers.manage": "Gérer les conducteurs",
   "vehicle.drivers.soleHint": "Vous êtes le seul conducteur assigné à ce véhicule.",

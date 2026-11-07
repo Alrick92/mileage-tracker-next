@@ -1,5 +1,15 @@
 import Link from "next/link";
 
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
+import { localeTag, translator, type Locale } from "@/lib/i18n";
+
+type Labels = {
+  previous: string;
+  next: string;
+  pageOfTotal: string;
+  totalItems: string;
+};
+
 type Props = {
   page: number;
   totalPages: number;
@@ -7,13 +17,30 @@ type Props = {
   basePath: string;
   paramName?: string;
   otherParams?: Record<string, string | undefined>;
-  labels: {
-    previous: string;
-    next: string;
-    pageOfTotal: string;
-    totalItems: string;
-  };
+  labels: Labels;
 };
+
+/** Standard translated labels for <Pagination>. */
+export function paginationLabels(
+  locale: Locale,
+  page: number,
+  totalPages: number,
+  total: number,
+): Labels {
+  const t = translator(locale);
+  const tag = localeTag(locale);
+  return {
+    previous: t("pagination.previous"),
+    next: t("pagination.next"),
+    pageOfTotal: t("pagination.pageOfTotal", {
+      page: page.toLocaleString(tag),
+      total: totalPages.toLocaleString(tag),
+    }),
+    totalItems: t("pagination.totalItems", {
+      count: total.toLocaleString(tag),
+    }),
+  };
+}
 
 export function Pagination({
   page,
@@ -39,35 +66,40 @@ export function Pagination({
   const prevDisabled = page <= 1;
   const nextDisabled = page >= totalPages;
 
-  const disabledCls =
-    "cursor-not-allowed rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-zinc-400";
-  const activeCls =
-    "rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-zinc-700 hover:bg-zinc-100";
+  const base =
+    "inline-flex min-h-10 items-center gap-1 rounded-lg border px-3 text-xs font-medium transition md:min-h-8";
+  const disabledCls = `${base} cursor-not-allowed border-zinc-100 bg-zinc-50 text-zinc-300`;
+  const activeCls = `${base} border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 active:scale-95`;
 
   return (
     <nav
       aria-label="Pagination"
-      className="flex flex-col items-stretch gap-2 border-t border-zinc-100 bg-white px-4 py-3 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between"
+      className="flex items-center justify-between gap-3 border-t border-zinc-100 bg-white px-4 py-3 text-xs text-zinc-500"
     >
-      <div>{labels.totalItems}</div>
-      <div className="flex items-center justify-end gap-2">
-        <span className="font-mono">{labels.pageOfTotal}</span>
+      <div className="hidden sm:block">{labels.totalItems}</div>
+      <span className="font-mono sm:hidden">{labels.pageOfTotal}</span>
+      <div className="flex items-center gap-2">
+        <span className="hidden font-mono sm:inline">{labels.pageOfTotal}</span>
         {prevDisabled ? (
           <span className={disabledCls} aria-disabled="true">
+            <ChevronLeftIcon width={14} height={14} />
             {labels.previous}
           </span>
         ) : (
-          <Link href={makeHref(page - 1)} className={activeCls}>
+          <Link href={makeHref(page - 1)} className={activeCls} rel="prev">
+            <ChevronLeftIcon width={14} height={14} />
             {labels.previous}
           </Link>
         )}
         {nextDisabled ? (
           <span className={disabledCls} aria-disabled="true">
             {labels.next}
+            <ChevronRightIcon width={14} height={14} />
           </span>
         ) : (
-          <Link href={makeHref(page + 1)} className={activeCls}>
+          <Link href={makeHref(page + 1)} className={activeCls} rel="next">
             {labels.next}
+            <ChevronRightIcon width={14} height={14} />
           </Link>
         )}
       </div>

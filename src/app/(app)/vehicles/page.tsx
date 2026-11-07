@@ -2,16 +2,18 @@ import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { localeTag, translator } from "@/lib/i18n";
-import { formatOdometer } from "@/lib/units";
+import { translator } from "@/lib/i18n";
 import {
   DEFAULT_PAGE_SIZE,
   computeSkip,
   computeTotalPages,
   parsePage,
 } from "@/lib/pagination";
-import { Pagination } from "@/app/(app)/_components/Pagination";
+import { CarIcon, PlusIcon } from "@/components/icons";
+import { EmptyState, PageHeader, buttonStyles } from "@/components/ui";
+import { Pagination, paginationLabels } from "@/app/(app)/_components/Pagination";
 import { Toast } from "@/app/(app)/_components/Toast";
+import { VehicleList } from "@/app/(app)/_components/VehicleList";
 
 export const metadata = {
   title: "Vehicles · Mileage Tracker",
@@ -59,8 +61,6 @@ export default async function VehiclesPage({
     take: DEFAULT_PAGE_SIZE,
   });
 
-  const tag = localeTag(user.locale);
-
   return (
     <div className="space-y-6">
       {params.saved ? (
@@ -69,116 +69,44 @@ export default async function VehiclesPage({
       {params.deleted ? (
         <Toast variant="success" message={t("toast.vehicleDeleted")} />
       ) : null}
-      {params.error ? (
-        <Toast variant="error" message={params.error} />
-      ) : null}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("vehicles.title")}
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            {t("vehicles.subtitle")}
-          </p>
-        </div>
-        <Link
-          href="/vehicles/new"
-          className="inline-flex w-fit items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-        >
-          {t("dashboard.addVehicle")}
-        </Link>
-      </header>
+      {params.error ? <Toast variant="error" message={params.error} /> : null}
+
+      <PageHeader
+        title={t("vehicles.title")}
+        subtitle={t("vehicles.subtitle")}
+        actions={
+          <Link href="/vehicles/new" className={buttonStyles.primary}>
+            <PlusIcon width={16} height={16} />
+            {t("dashboard.addVehicle")}
+          </Link>
+        }
+      />
 
       {total === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-          <p className="text-sm font-medium text-zinc-900">
-            {t("vehicles.empty.title")}
-          </p>
-          <p className="mt-1 text-sm text-zinc-500">
-            {t("vehicles.empty.subtitle")}
-          </p>
-        </div>
+        <EmptyState
+          icon={<CarIcon width={24} height={24} />}
+          title={t("vehicles.empty.title")}
+          subtitle={t("vehicles.empty.subtitle")}
+        />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium">
-                    {t("dashboard.col.vehicle")}
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    {t("dashboard.col.plate")}
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    {t("dashboard.col.trips")}
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium">
-                    {t("dashboard.col.currentOdometer")}
-                  </th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {vehicles.map((v) => (
-                  <tr key={v.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-zinc-900">
-                        {v.name}
-                        {v._count.assignments > 1 ? (
-                          <span className="ml-2 inline-flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-zinc-700">
-                            {t("vehicles.sharedBadge", {
-                              count: String(v._count.assignments),
-                            })}
-                          </span>
-                        ) : null}
-                      </div>
-                      {v.make || v.model ? (
-                        <div className="text-xs text-zinc-500">
-                          {[v.year, v.make, v.model].filter(Boolean).join(" ")}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-700">
-                      {v.licensePlate ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {v._count.trips}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-zinc-900">
-                      {formatOdometer(v.currentOdometer, user.unit, user.locale)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/vehicles/${v.id}`}
-                        className="text-xs font-medium text-zinc-900 underline-offset-4 hover:underline"
-                      >
-                        {t("common.view")}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            total={total}
-            basePath="/vehicles"
-            labels={{
-              previous: t("pagination.previous"),
-              next: t("pagination.next"),
-              pageOfTotal: t("pagination.pageOfTotal", {
-                page: page.toLocaleString(tag),
-                total: totalPages.toLocaleString(tag),
-              }),
-              totalItems: t("pagination.totalItems", {
-                count: total.toLocaleString(tag),
-              }),
-            }}
-          />
-        </div>
+        <VehicleList
+          vehicles={vehicles.map((v) => ({
+            ...v,
+            tripCount: v._count.trips,
+            driverCount: v._count.assignments,
+          }))}
+          unit={user.unit}
+          locale={user.locale}
+          footer={
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              basePath="/vehicles"
+              labels={paginationLabels(user.locale, page, totalPages, total)}
+            />
+          }
+        />
       )}
     </div>
   );

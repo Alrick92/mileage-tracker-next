@@ -9,6 +9,11 @@
   "nav.admin": "Users",
   "nav.fleet": "Fleet",
   "nav.audit": "Audit log",
+  "nav.main": "Main navigation",
+  "nav.more": "More",
+  "nav.logShort": "Log",
+  "nav.adminHeading": "Administration",
+  "nav.skipToContent": "Skip to content",
 
   "topbar.signedInAs": "Signed in as",
   "topbar.signOut": "Sign out",
@@ -30,6 +35,7 @@
   "common.miles": "Miles",
   "common.yes": "Yes",
   "common.no": "No",
+  "common.close": "Close",
 
   "pagination.previous": "Previous",
   "pagination.next": "Next",
@@ -63,6 +69,10 @@
   "dashboard.col.plate": "Plate",
   "dashboard.col.trips": "Trips",
   "dashboard.col.currentOdometer": "Current odometer",
+  "dashboard.greeting": "Hi, {name}",
+  "dashboard.quickLogHint": "Record a drive in a few taps",
+  "dashboard.recentTrips": "Recent trips",
+  "dashboard.viewAllTrips": "View all",
 
   "vehicles.title": "Vehicles",
   "vehicles.subtitle": "Manage your fleet and current odometer readings.",
@@ -115,6 +125,12 @@
   "trips.form.distance": "Distance",
   "trips.form.notes": "Notes",
   "trips.form.save": "Log trip",
+  "trips.form.today": "Today",
+  "trips.form.yesterday": "Yesterday",
+  "trips.form.distanceField": "Trip distance ({unit})",
+  "trips.form.distanceHelp": "or enter the distance",
+  "trips.form.endBeforeStart": "End reading can't be lower than the start reading.",
+  "trips.form.notesPlaceholder": "Purpose, destination, client…",
 
   "trips.edit.title": "Edit trip",
   "trips.edit.subtitle": "Update trip details. Odometer and vehicle changes are kept in sync with the vehicle's current reading.",
@@ -236,6 +252,7 @@
   "admin.assignments.toast.unassigned": "Driver removed.",
 
   "vehicles.sharedBadge": "Shared",
+  "vehicles.tripCount": "{count} trip(s)",
   "vehicle.drivers.heading": "Drivers",
   "vehicle.drivers.manage": "Manage drivers",
   "vehicle.drivers.soleHint": "You are the only driver assigned to this vehicle.",

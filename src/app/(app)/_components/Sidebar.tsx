@@ -3,137 +3,95 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type NavItem = {
-  href: string;
-  label: string;
-  match: (path: string) => boolean;
-};
+import { PlusIcon } from "@/components/icons";
+import { Logo } from "@/components/ui";
 
+import { buildNav, type NavItem, type NavLabels } from "./nav";
+
+/** Desktop-only sidebar. Mobile navigation lives in MobileNav. */
 export function Sidebar({
   appTitle,
   version,
   labels,
+  logTripLabel,
+  adminHeading,
   isAdmin,
 }: {
   appTitle: string;
   version: string;
-  labels: {
-    dashboard: string;
-    vehicles: string;
-    trips: string;
-    settings: string;
-    admin: string;
-    fleet: string;
-    audit: string;
-  };
+  labels: NavLabels;
+  logTripLabel: string;
+  adminHeading: string;
   isAdmin: boolean;
 }) {
   const pathname = usePathname();
-
-  const nav: NavItem[] = [
-    {
-      href: "/dashboard",
-      label: labels.dashboard,
-      match: (p) => p === "/dashboard",
-    },
-    {
-      href: "/vehicles",
-      label: labels.vehicles,
-      match: (p) => p.startsWith("/vehicles"),
-    },
-    {
-      href: "/trips",
-      label: labels.trips,
-      match: (p) => p.startsWith("/trips"),
-    },
-    {
-      href: "/settings",
-      label: labels.settings,
-      match: (p) => p.startsWith("/settings"),
-    },
-  ];
-  if (isAdmin) {
-    nav.push({
-      href: "/admin/fleet",
-      label: labels.fleet,
-      match: (p) => p.startsWith("/admin/fleet"),
-    });
-    nav.push({
-      href: "/admin/users",
-      label: labels.admin,
-      match: (p) => p.startsWith("/admin/users"),
-    });
-    nav.push({
-      href: "/admin/audit",
-      label: labels.audit,
-      match: (p) => p.startsWith("/admin/audit"),
-    });
-  }
+  const { main, admin } = buildNav(labels, isAdmin);
 
   return (
-    <>
-      {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-zinc-200 bg-white md:flex md:flex-col">
-        <div className="flex h-16 items-center gap-2 border-b border-zinc-200 px-6">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 font-mono text-xs font-bold text-white">
-            MT
-          </span>
-          <span className="text-sm font-semibold tracking-tight">
-            {appTitle}
-          </span>
-        </div>
-        <nav className="flex-1 space-y-0.5 px-3 py-4">
-          {nav.map((item) => {
-            const active = item.match(pathname);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={
-                  active
-                    ? "block rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white"
-                    : "block rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
-                }
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="border-t border-zinc-200 px-6 py-4 text-xs text-zinc-500">
-          <p className="font-mono">{version}</p>
-        </div>
-      </aside>
-
-      {/* Mobile top navigation strip */}
-      <div className="border-b border-zinc-200 bg-white md:hidden">
-        <div className="flex h-14 items-center gap-2 border-b border-zinc-100 px-4">
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-zinc-900 font-mono text-[10px] font-bold text-white">
-            MT
-          </span>
-          <span className="text-sm font-semibold tracking-tight">
-            {appTitle}
-          </span>
-        </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 py-2">
-          {nav.map((item) => {
-            const active = item.match(pathname);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={
-                  active
-                    ? "whitespace-nowrap rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white"
-                    : "whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
-                }
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-zinc-200 bg-white md:flex">
+      <div className="flex h-16 items-center gap-2.5 px-5">
+        <Logo />
+        <span className="text-sm font-semibold tracking-tight">{appTitle}</span>
       </div>
-    </>
+
+      <div className="px-3 pb-2">
+        <Link
+          href="/trips/new"
+          className="flex h-10 items-center justify-center gap-2 rounded-lg bg-zinc-900 text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800 active:scale-[0.98]"
+        >
+          <PlusIcon width={16} height={16} />
+          {logTripLabel}
+        </Link>
+      </div>
+
+      <nav aria-label={appTitle} className="flex-1 overflow-y-auto px-3 py-3">
+        <ul className="space-y-0.5">
+          {main.map((item) => (
+            <SidebarLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </ul>
+        {admin.length > 0 ? (
+          <>
+            <p className="mt-6 px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+              {adminHeading}
+            </p>
+            <ul className="space-y-0.5">
+              {admin.map((item) => (
+                <SidebarLink key={item.href} item={item} pathname={pathname} />
+              ))}
+            </ul>
+          </>
+        ) : null}
+      </nav>
+
+      <div className="border-t border-zinc-100 px-5 py-4 text-xs text-zinc-400">
+        <p className="font-mono">{version}</p>
+      </div>
+    </aside>
+  );
+}
+
+function SidebarLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const active = item.match(pathname);
+  const Icon = item.icon;
+  return (
+    <li>
+      <Link
+        href={item.href}
+        aria-current={active ? "page" : undefined}
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+          active
+            ? "bg-zinc-100 text-zinc-900"
+            : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+        }`}
+      >
+        <Icon
+          width={18}
+          height={18}
+          className={active ? "text-zinc-900" : "text-zinc-400"}
+        />
+        {item.label}
+      </Link>
+    </li>
   );
 }

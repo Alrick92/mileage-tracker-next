@@ -1,8 +1,7 @@
-import Link from "next/link";
-
 import { requireUser } from "@/lib/auth";
 import { translator } from "@/lib/i18n";
 import { unitShort } from "@/lib/units";
+import { PageHeader, cardStyles } from "@/components/ui";
 
 import { VehicleForm } from "./VehicleForm";
 
@@ -16,22 +15,13 @@ export default async function NewVehiclePage() {
   const unit = unitShort(user.unit, user.locale);
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <Link
-          href="/vehicles"
-          className="text-xs font-medium text-zinc-500 hover:text-zinc-900"
-        >
-          ← {t("vehicles.title")}
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {t("vehicles.new.title")}
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          {t("vehicles.new.subtitle")}
-        </p>
-      </div>
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <div className="mx-auto max-w-2xl space-y-5 md:mx-0">
+      <PageHeader
+        back={{ href: "/vehicles", label: t("vehicles.title") }}
+        title={t("vehicles.new.title")}
+        subtitle={t("vehicles.new.subtitle")}
+      />
+      <div className={`${cardStyles} p-4 sm:p-6`}>
         <VehicleForm
           labels={{
             name: t("vehicles.form.name"),
